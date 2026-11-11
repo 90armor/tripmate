@@ -36,7 +36,8 @@ Then edit `.env`:
 
 - `BETTER_AUTH_SECRET` — replace the placeholder with a real secret:
   `openssl rand -base64 32`. The placeholder works for local development but the app **refuses to
-  start with it when `NODE_ENV=production`**.
+  start with it when `NODE_ENV=production` or when `BETTER_AUTH_URL`'s host is not `localhost` /
+  `127.0.0.1`** (for example a staging or preview deployment).
 - The database URLs already match `docker-compose.yml`; leave them unless you changed the compose
   file.
 

@@ -76,26 +76,52 @@ describe("parseServerEnv", () => {
   });
 
   describe("the .env.example auth secret placeholder", () => {
-    it("is accepted in development so a fresh checkout works", () => {
+    const placeholderRejected = [
+      "BETTER_AUTH_SECRET: must not be the .env.example placeholder in production or when BETTER_AUTH_URL is not localhost",
+    ];
+    const withPlaceholder = { ...validEnv, BETTER_AUTH_SECRET: EXAMPLE_AUTH_SECRET_PLACEHOLDER };
+
+    it("is accepted in development on localhost so a fresh checkout works", () => {
+      const env = parseServerEnv(withPlaceholder);
+      expect(env.BETTER_AUTH_SECRET).toBe(EXAMPLE_AUTH_SECRET_PLACEHOLDER);
+    });
+
+    it.each(["development", "test"])("is accepted in %s on 127.0.0.1", (NODE_ENV) => {
       const env = parseServerEnv({
-        ...validEnv,
-        BETTER_AUTH_SECRET: EXAMPLE_AUTH_SECRET_PLACEHOLDER,
+        ...withPlaceholder,
+        NODE_ENV,
+        BETTER_AUTH_URL: "http://127.0.0.1:3100",
       });
       expect(env.BETTER_AUTH_SECRET).toBe(EXAMPLE_AUTH_SECRET_PLACEHOLDER);
     });
 
-    it("is rejected in production", () => {
-      expect(
-        problemsFor({
-          ...validEnv,
-          NODE_ENV: "production",
-          BETTER_AUTH_SECRET: EXAMPLE_AUTH_SECRET_PLACEHOLDER,
-        }),
-      ).toEqual(["BETTER_AUTH_SECRET: must not be the .env.example placeholder in production"]);
+    it("is rejected in production, even on localhost", () => {
+      expect(problemsFor({ ...withPlaceholder, NODE_ENV: "production" })).toEqual(
+        placeholderRejected,
+      );
+    });
+
+    it.each([
+      ["development", "https://staging.tripmate.example"],
+      ["test", "https://preview-42.tripmate.example"],
+      ["development", "http://localhost.tripmate.example"],
+      ["development", "http://192.168.1.20:3000"],
+    ])("is rejected in %s when BETTER_AUTH_URL is %s", (NODE_ENV, BETTER_AUTH_URL) => {
+      expect(problemsFor({ ...withPlaceholder, NODE_ENV, BETTER_AUTH_URL })).toEqual(
+        placeholderRejected,
+      );
     });
 
     it("still allows a real secret in production", () => {
       expect(parseServerEnv({ ...validEnv, NODE_ENV: "production" }).NODE_ENV).toBe("production");
+    });
+
+    it("still allows a real secret on a non-localhost URL", () => {
+      const env = parseServerEnv({
+        ...validEnv,
+        BETTER_AUTH_URL: "https://staging.tripmate.example",
+      });
+      expect(env.BETTER_AUTH_URL).toBe("https://staging.tripmate.example");
     });
 
     it("matches the value actually shipped in .env.example", () => {

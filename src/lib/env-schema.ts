@@ -2,10 +2,21 @@ import { z } from "zod";
 
 /**
  * The BETTER_AUTH_SECRET value shipped in .env.example. Accepted for local
- * development so `cp .env.example .env` works, but rejected in production.
- * A unit test keeps this in sync with .env.example.
+ * development so `cp .env.example .env` works, but rejected in production and
+ * on any deployment whose BETTER_AUTH_URL is not localhost (staging, previews),
+ * because the value is public. A unit test keeps this in sync with .env.example.
  */
 export const EXAMPLE_AUTH_SECRET_PLACEHOLDER = "replace-me-with-openssl-rand-base64-32-output";
+
+const LOCAL_AUTH_HOSTS: ReadonlySet<string> = new Set(["localhost", "127.0.0.1"]);
+
+function isLocalAuthUrl(value: string): boolean {
+  try {
+    return LOCAL_AUTH_HOSTS.has(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+}
 
 const postgresUrl = z
   .url({ message: "must be a valid URL" })
@@ -21,14 +32,13 @@ const serverEnvSchema = z
     BETTER_AUTH_URL: z.url({ message: "must be a valid URL" }),
   })
   .superRefine((env, ctx) => {
-    if (
-      env.NODE_ENV === "production" &&
-      env.BETTER_AUTH_SECRET === EXAMPLE_AUTH_SECRET_PLACEHOLDER
-    ) {
+    const isLocalDevelopment = env.NODE_ENV !== "production" && isLocalAuthUrl(env.BETTER_AUTH_URL);
+    if (env.BETTER_AUTH_SECRET === EXAMPLE_AUTH_SECRET_PLACEHOLDER && !isLocalDevelopment) {
       ctx.addIssue({
         code: "custom",
         path: ["BETTER_AUTH_SECRET"],
-        message: "must not be the .env.example placeholder in production",
+        message:
+          "must not be the .env.example placeholder in production or when BETTER_AUTH_URL is not localhost",
       });
     }
   });
