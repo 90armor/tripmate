@@ -1,3 +1,4 @@
+import type { Logger } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
@@ -10,9 +11,9 @@ import * as schema from "./schema";
  * pg returns NUMERIC as strings, which keeps future money values exact
  * (never parse them with Number()).
  */
-export function createDb(connectionString: string) {
+export function createDb(connectionString: string, options: { logger?: Logger } = {}) {
   const pool = new Pool({ connectionString });
-  const db = drizzle(pool, { schema });
+  const db = drizzle(pool, { schema, logger: options.logger });
   return { db, pool };
 }
 
