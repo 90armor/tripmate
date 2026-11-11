@@ -15,7 +15,7 @@ concurrency:
 jobs:
   quality:
     name: Lint, typecheck, unit tests, build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       # Installs the pnpm version pinned in package.json "packageManager".
@@ -34,7 +34,7 @@ jobs:
 
   integration:
     name: PostgreSQL integration tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:18-alpine
