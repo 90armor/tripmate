@@ -1,0 +1,16 @@
+# Owner-maintained documentation and agent instructions are not reformatted by tooling.
+docs/
+*.md
+.claude/
+
+# Generated
+pnpm-lock.yaml
+.next/
+out/
+build/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+next-env.d.ts
+src/db/migrations/

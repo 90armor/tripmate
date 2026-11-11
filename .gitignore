@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Next.js / build output
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Tests
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Environment (real values never committed; .env.example is the template)
+.env
+.env.*
+!.env.example
+
+# Local database artifacts (data lives in a Docker named volume; this guards stray dumps)
+*.dump
+*.sql.gz
+pgdata/
+
+# OS / editor
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Lockfiles from other package managers (pnpm only)
+package-lock.json
+yarn.lock
