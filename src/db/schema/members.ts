@@ -41,6 +41,11 @@ export const tripMembers = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .default(sql`clock_timestamp()`),
+    // Same clock as created_at so a fresh row never has updated_at < created_at.
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`clock_timestamp()`)
+      .$onUpdate(() => new Date()),
   },
   (t) => [
     unique("trip_members_trip_id_user_id_key").on(t.tripId, t.userId),

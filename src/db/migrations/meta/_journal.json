@@ -8,6 +8,13 @@
       "when": 1794385938296,
       "tag": "0000_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794389374150,
+      "tag": "0001_trip_members_updated_at_clock",
+      "breakpoints": true
     }
   ]
 }

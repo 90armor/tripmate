@@ -1,0 +1,1 @@
+ALTER TABLE "trip_members" ALTER COLUMN "updated_at" SET DEFAULT clock_timestamp();
