@@ -2611,5 +2611,9 @@ Owner-approved decisions. Treat as locked unless the project owner changes them.
 | D6 | 2026-11-03 | **Settlement suggestions:** greedy matching of largest debtor to largest creditor, ties broken by D4 ordering. Documented as simple and deterministic, not minimum transfers. | FEATURES, DATABASE, AGENT_RULES, ROADMAP, PROJECT_OVERVIEW |
 | D7 | 2026-11-03 | **Trip status:** derived from dates in the trip timezone; nullable manual status override (`trips.status_override`). | DATABASE, FEATURES, USER_FLOWS |
 | D8 | 2026-11-03 | **Cleanup:** member states ACTIVE/LEFT/REMOVED only; "Not Required" booking status removed; preference wording aligned to INTERESTED/NOT_INTERESTED; itinerary days derived from trip date range (no table); "default expense configuration" removed; budget fields deferred to budget slice; FK added for `activity_suggestions.accepted_activity_id`; stray code-fence attributes removed; this Decision Log added. | FEATURES, USER_FLOWS, PROJECT_OVERVIEW, DATABASE, CURRENT_TASK, AGENT_RULES, ROADMAP |
+| D9 | 2026-11-11 | **Member ordering timestamp:** `trip_members.created_at` defaults to `clock_timestamp()` (not `now()`), and members are inserted one row per INSERT, so join order is preserved for the D4 ordering even within one transaction. | ROADMAP |
+| D10 | 2026-11-11 | **Email storage:** emails are stored lowercase, enforced by `CHECK (email = lower(email))` plus `UNIQUE(email)`; relies on Better Auth lowercasing emails before writing. | ROADMAP |
 
 Open item arising from D7: the date rule that separates PLANNING from UPCOMING is not yet defined.
+
+Open item: add `UNIQUE(trip_id, id)` on `trip_members` (DATABASE §51) before the expenses milestone, so financial foreign keys can enforce that payer and participants belong to the same trip.
