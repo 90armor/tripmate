@@ -123,7 +123,9 @@ Integration tests:
 - refuse to run unless `TEST_DATABASE_URL` names a `*_test` database that differs from
   `DATABASE_URL`;
 - apply the committed migrations to the test database first;
-- run each test in a transaction that is rolled back, so no data is left behind.
+- run each test in a transaction that is rolled back, so no data is left behind. Exception:
+  `src/lib/auth/create-auth.int.test.ts` lets Better Auth write through its own connection,
+  so those rows are committed; the test deletes the users it created in `afterEach`.
 
 `pnpm test:e2e` starts its own dev server on port 3100 (or reuses one already running there).
 
