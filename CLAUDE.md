@@ -27,6 +27,7 @@ Do not pick an answer and write it into the docs as if it were decided.
   Never edit a migration that has already been applied.
 - Never read, print, or edit `.env` files with real values. Use `.env.example`.
 - Ask before adding any dependency; say why it is needed.
+- Insert trip_members one row per INSERT (D9). Emails are stored lowercase (D10).
 
 ## Workflow
 
@@ -41,10 +42,10 @@ Do not pick an answer and write it into the docs as if it were decided.
 
 <!-- Fill in after M0 creates them. Until then, there is no app to run. -->
 - `pnpm dev` — TODO
-- `pnpm check` — TODO (lint + typecheck + unit tests)
-- `pnpm test:integration` — TODO (uses the test database, never dev)
-- `pnpm test:e2e` — TODO
-- `pnpm build` — TODO
+- `pnpm check` — Lint, format and typecheck clean; 29/29 unit tests passed
+- `pnpm test:integration` — 16/16 passed; this also applied 0001 to `tripmate_test`
+- `pnpm test:e2e` — 15/15 passed at 360, 430 and 1280px
+- `pnpm build` — Compiled; `/` and `/_not-found` are static
 - `pnpm db:generate` / `pnpm db:migrate` — TODO
 
 ## Blocked by hooks (do not try to work around them)
