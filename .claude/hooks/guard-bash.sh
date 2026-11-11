@@ -73,8 +73,11 @@ while IFS= read -r seg; do
   done
 done < <(echo "$cmd" | sed -E 's/(\&\&|\|\||;|\|)/\n/g')
 
-# Read-only git queries that only name paths are safe (no chaining allowed).
-echo "$cmd" | grep -Eq '^[[:space:]]*git[[:space:]]+(check-ignore|ls-files)[^;&|<>]*$' && exit 0
+# Read-only git path queries are allowed only when the whole command is a single line
+# made of plain path characters (no $, backticks, parentheses, quotes, or chaining).
+if [[ "$cmd" != *$'\n'* ]] && [[ "$cmd" =~ ^[[:space:]]*git[[:space:]]+(check-ignore|ls-files)([[:space:]]+[A-Za-z0-9._/@:=+-]+)*[[:space:]]*$ ]]; then
+  exit 0
+fi
 # --- Real .env files (secrets) ---------------------------------------------
 # Allowed: anything mentioning only .env.example, and the setup copy `cp .env.example .env[.local]`.
 if echo "$cmd" | grep -Eq '^[[:space:]]*cp([[:space:]]+-n)?[[:space:]]+\.env\.example[[:space:]]+\.env(\.local)?[[:space:]]*$'; then
