@@ -1,0 +1,27 @@
+# Local development PostgreSQL only (CURRENT_TASK §13-14). Next.js runs natively on the host.
+# Credentials below are LOCAL-ONLY and match .env.example. Never reuse them anywhere else.
+name: tripmate
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: tripmate
+      POSTGRES_PASSWORD: tripmate
+      POSTGRES_DB: tripmate
+    ports:
+      # Host port 5433 (5432 may be used by a local Homebrew Postgres). Bound to localhost only.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/<major>/; mount the parent.
+      - tripmate-pgdata:/var/lib/postgresql
+      # Runs only when the volume is empty: creates the separate tripmate_test database.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tripmate -d tripmate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tripmate-pgdata:
