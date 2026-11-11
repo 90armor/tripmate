@@ -345,6 +345,8 @@ email required where email identity is used
 
 Case-insensitive email uniqueness should be enforced safely.
 
+Emails are stored lowercase: `CHECK (email = lower(email))` plus `UNIQUE(email)`, relying on Better Auth lowercasing (ROADMAP Decision Log D10).
+
 ---
 
 # 11. Trips
@@ -522,6 +524,8 @@ CHECK (role <> 'OWNER' OR user_id IS NOT NULL)
 ```
 
 PostgreSQL treats `NULL` values as distinct in unique constraints, so a trip may have several placeholders. `UNIQUE(trip_id, user_id)` also enforces the claim rejection rule at the database level.
+
+`created_at` and `updated_at` default to `clock_timestamp()`, and members are inserted one row per INSERT, so join order is preserved for the D4 ordering (ROADMAP Decision Log D9).
 
 ## Critical Rule
 
