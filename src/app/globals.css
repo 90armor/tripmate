@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+/*
+ * TripMate design tokens (DESIGN_SYSTEM.md §5, §7, §14, §17, §66, §90–91).
+ *
+ * Two layers:
+ *   1. Brand tokens   — PROVISIONAL. Brand identity is not finalized (§8, §100);
+ *                       these values are placeholders and expected to change.
+ *   2. Semantic tokens — stable roles that components consume. Names follow §91.
+ *
+ * Components must use the Tailwind utilities generated in `@theme inline` below,
+ * never raw hex values. Light theme only for now (§70); dark mode later redefines
+ * the semantic layer, not components.
+ */
+:root {
+  /* 1. Brand — provisional restrained teal (§8). NOT a final palette. */
+  --brand-primary: #0f766e;
+  --brand-primary-strong: #115e59;
+  --brand-primary-stronger: #134e4a;
+  --brand-primary-subtle: #e6f2f0;
+
+  /* 2. Semantic — surfaces (§11) */
+  --background: #f6f5f2;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+
+  /* Text (§69: keep strong contrast for outdoor reading) */
+  --text-primary: #1c1b19;
+  --text-secondary: #4a4743;
+  --text-muted: #6b6760;
+
+  /* Borders. --border-strong meets 3:1 non-text contrast for form controls. */
+  --border: #e3e0da;
+  --border-strong: #8a857c;
+
+  /* Actions */
+  --action-primary: var(--brand-primary);
+  --action-primary-hover: var(--brand-primary-strong);
+  --action-primary-pressed: var(--brand-primary-stronger);
+  --action-primary-subtle: var(--brand-primary-subtle);
+  --on-action-primary: #ffffff;
+
+  /* Status (§9). Always paired with a label/icon, never color alone. */
+  --success: #15803d;
+  --warning: #a16207;
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --danger-pressed: #7f1d1d;
+  --info: #1d4ed8;
+  --on-status: #ffffff;
+
+  /* Interaction */
+  --focus: #1d4ed8;
+  --disabled: #ebe8e3;
+  --on-disabled: #6b6760;
+
+  /* Motion (§66) */
+  --duration-fast: 140ms;
+  --duration-standard: 200ms;
+  --duration-slow: 320ms;
+}
+
+@theme inline {
+  /* Only semantic colors exist; Tailwind's default palette is removed so feature
+     code cannot reach for arbitrary colors (ARCHITECTURE §69). */
+  --color-*: initial;
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-action: var(--action-primary);
+  --color-action-hover: var(--action-primary-hover);
+  --color-action-pressed: var(--action-primary-pressed);
+  --color-action-subtle: var(--action-primary-subtle);
+  --color-on-action: var(--on-action-primary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-pressed: var(--danger-pressed);
+  --color-info: var(--info);
+  --color-on-status: var(--on-status);
+  --color-focus: var(--focus);
+  --color-disabled: var(--disabled);
+  --color-on-disabled: var(--on-disabled);
+
+  /* Typography (§16–17). Inter is loaded by next/font in layout.tsx. */
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --text-*: initial;
+  --text-display: 2rem;
+  --text-display--line-height: 2.375rem;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.125rem;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.5rem;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.125rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+
+  /* Radius (§14): small 8 · medium 12 · large 16 · xl 20 · pill = rounded-full */
+  --radius-*: initial;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  /* Shadows (§15): minimal; reserved for elevated surfaces. */
+  --shadow-*: initial;
+  --shadow-elevated: 0 4px 16px rgb(28 27 25 / 0.08), 0 1px 3px rgb(28 27 25 / 0.06);
+
+  /* Spacing stays Tailwind's 4px base (§20): p-4 = 16px, p-5 = 20px, p-6 = 24px. */
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* One consistent focus ring for every interactive element (§63).
+     Outlines are never removed without this replacement. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--action-primary-subtle);
+    color: var(--text-primary);
+  }
+}
+
+/* Respect reduced-motion preferences (§68). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
