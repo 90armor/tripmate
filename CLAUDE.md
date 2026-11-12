@@ -10,7 +10,7 @@ itinerary, places, hotels/bookings, food, activities, expenses, and settlement.
 3. Read the `docs/` files that task names. Docs map:
    - Product: `PROJECT_OVERVIEW`, `USER_FLOWS`, `FEATURES`, `INFORMATION_ARCHITECTURE`
    - Technical: `ARCHITECTURE`, `DATABASE`, `DESIGN_SYSTEM`
-   - Scope and locked decisions: `ROADMAP` (see its **Decision Log**, D1–D8)
+   - Scope and locked decisions: `ROADMAP` (see its **Decision Log**, D1–D19)
 
 If the docs contradict each other or do not decide something you need, stop and ask.
 Do not pick an answer and write it into the docs as if it were decided.
@@ -40,13 +40,16 @@ Do not pick an answer and write it into the docs as if it were decided.
 
 ## Commands
 
-<!-- Fill in after M0 creates them. Until then, there is no app to run. -->
-- `pnpm dev` — TODO
-- `pnpm check` — Lint, format and typecheck clean; 29/29 unit tests passed
-- `pnpm test:integration` — 16/16 passed; this also applied 0001 to `tripmate_test`
-- `pnpm test:e2e` — 15/15 passed at 360, 430 and 1280px
-- `pnpm build` — Compiled; `/` and `/_not-found` are static
-- `pnpm db:generate` / `pnpm db:migrate` — TODO
+- `pnpm db:up` — start local PostgreSQL (Docker Compose) and wait until healthy
+- `pnpm db:migrate` — apply committed migrations; `pnpm db:generate` — create a migration from schema changes
+- `pnpm db:seed` — upsert currency reference data
+- `pnpm dev` — run the Next.js dev server
+- `pnpm check` — lint + format check + typecheck + unit tests (main local gate)
+- `pnpm test:integration` — PostgreSQL integration tests against `tripmate_test`
+- `pnpm test:e2e` — Playwright (360, 430 and 1280px)
+- `pnpm build` — production build
+
+M0 baseline: check 29/29 unit, integration 16/16, e2e 15/15, build OK.
 
 ## Blocked by hooks (do not try to work around them)
 

@@ -1,1145 +1,329 @@
 # TripMate — Current Task
 
-## M0 — Foundation
+## M1 — First Trip
 
-**Status:** READY  
-**Milestone:** M0 — Foundation  
-**Next Milestone:** M1 — First Trip
+**Status:** READY
+**Milestone:** M1 — First Trip (ROADMAP Phase 1, Slices 1.1–1.5)
+**Previous Milestone:** M0 — Foundation (complete)
+**Next Milestone:** M2 — Travel Together
 
 ---
 
 # 1. Goal
 
-Establish a clean, production-oriented technical foundation for TripMate so that M1 can begin feature development without restructuring the project.
+A user can sign up, create a trip, open it, edit it, leave, come back later, and open the same trip — on a phone first and on desktop.
 
-At the end of M0, the repository should have:
+```text
+Sign Up / Sign In
+    ↓
+Create Trip
+    ↓
+Open Trip Workspace
+    ↓
+Edit Trip Settings
+    ↓
+Sign Out → Sign In
+    ↓
+Open Same Trip
+```
 
-- working Next.js application
-- TypeScript
-- Tailwind CSS
-- responsive application foundation
-- PostgreSQL local development environment
-- Drizzle ORM and migrations
-- Zod validation
-- Better Auth foundation
-- testing infrastructure
-- CI-ready quality commands
-- initial design tokens/components
-- documented environment setup
-
-M0 must not expand into actual TripMate feature implementation.
+This is TripMate's first real vertical slice: UI → validation → application service → database → tests.
 
 ---
 
 # 2. Required Reading
 
-Before modifying the repository, read:
+Before planning:
 
 ```text
-PROJECT_OVERVIEW.md
-USER_FLOWS.md
-FEATURES.md
-INFORMATION_ARCHITECTURE.md
-DATABASE.md
-ARCHITECTURE.md
-DESIGN_SYSTEM.md
-ROADMAP.md
-AGENT_RULES.md
+AGENT_RULES.md            (mandatory)
 CURRENT_TASK.md
+docs/ROADMAP.md           §14–20, §103–104, Decision Log D1–D19
+docs/FEATURES.md          §4 Authentication, §5 Trip Management, §6 Lifecycle, §41–42 Timezones/Dates
+docs/USER_FLOWS.md        Create Trip, Trip Home, Lifecycle
+docs/INFORMATION_ARCHITECTURE.md   My Trips, Trip Workspace, navigation
+docs/DATABASE.md          §10 users, §11 trips, §12 trip_destinations, §13 trip_members, §16 currencies
+docs/ARCHITECTURE.md      auth boundary, modules, application services, authorization
+docs/DESIGN_SYSTEM.md     forms, empty states, navigation
 ```
 
-`AGENT_RULES.md` is mandatory.
-
-Do not silently override documented product or architecture decisions.
+Start in plan mode. No code until the owner approves the plan.
 
 ---
 
-# 3. Locked Stack
+# 3. Locked Decisions for M1
 
-Use:
+Owner-approved on 2026-11-11 (ROADMAP Decision Log):
 
-```text
-Next.js App Router
-TypeScript
-Tailwind CSS
+| ID | Decision |
+|---|---|
+| D11 | Primary destination lives in `trip_destinations`; primary = `sort_order = 0`; `UNIQUE(trip_id, sort_order)`. M1 creates exactly one row. |
+| D12 | UPCOMING when `start_date − 14 days <= today < start_date` (today in trip timezone); earlier is PLANNING. |
+| D13 | Currencies come from a committed ISO 4217 (List One) JSON snapshot with source URL and publication date. No new dependency. |
+| D14 | Auth: email + password only, min length 8. No verification, reset, or social login. |
+| D15 | Timezone is required, chosen from a searchable IANA list, no default from device. |
+| D16 | Archived trips: collapsed "Archived" section in My Trips; OWNER can archive and unarchive. |
+| D17 | Full workspace navigation shown; unbuilt destinations show an intentional empty state. |
+| D18 | Profile: display name editable, email read-only, no avatar. |
+| D19 | No default checklist at trip creation (checklist arrives in M4). |
 
-PostgreSQL
-Drizzle ORM
-Drizzle Kit
+Earlier decisions still apply, especially D1 (Better Auth), D7 (derived status + override), D9 (one `trip_members` row per INSERT), D10 (lowercase emails).
 
-Zod
-
-Better Auth
-
-Vitest
-Playwright
-
-pnpm
-Docker Compose
-```
-
-Do not replace these technologies without explicit approval.
+If anything needed is still undecided or contradictory, stop and ask.
 
 ---
 
-# 4. Package Manager
+# 4. Scope
 
-Use:
+## 4.1 Slice 1.1 — Authentication
 
-```text
-pnpm
-```
-
-Repository should contain:
+Implement:
 
 ```text
-pnpm-lock.yaml
-```
-
-Do not maintain multiple lockfiles.
-
-Remove accidental:
-
-```text
-package-lock.json
-yarn.lock
-```
-
-if the repository is newly bootstrapped and they are not intentionally required.
-
----
-
-# 5. Runtime
-
-Use the Node.js runtime for server/database behavior.
-
-Do not optimize TripMate's database/domain logic around Edge runtime during M0.
-
-The project should declare/document a supported Node version so local development and CI remain consistent.
-
-Prefer an active LTS release compatible with the selected framework/dependencies.
-
-Do not unnecessarily pin an obsolete runtime.
-
----
-
-# 6. Next.js Foundation
-
-Use:
-
-```text
-App Router
-src/ directory
-TypeScript
-Tailwind CSS
-```
-
-Initial structure should support:
-
-```text
-src/app
-src/components
-src/modules
-src/domain
-src/db
-src/lib
-src/integrations
-```
-
-Do not create unnecessary empty subdirectories simply to mirror architecture documentation.
-
----
-
-# 7. Initial Application
-
-The root application should render a minimal TripMate foundation screen.
-
-This is not the final landing page.
-
-It should confirm:
-
-- application works
-- global typography works
-- design tokens work
-- responsive layout works
-
-Avoid spending significant time building marketing content.
-
----
-
-# 8. Design Foundation
-
-Implement semantic design tokens consistent with `DESIGN_SYSTEM.md`.
-
-Initial categories:
-
-```text
-background
-surface
-text
-muted text
-border
-primary action
-success
-warning
-danger
-focus
-```
-
-Brand identity is not finalized.
-
-Do not overcommit to a permanent brand palette.
-
----
-
-# 9. Typography
-
-Use:
-
-```text
-Inter
-```
-
-as the initial product UI font.
-
-Configure it through the Next.js/font strategy appropriate for the current project setup.
-
-Provide sensible fallback fonts.
-
----
-
-# 10. Global Styling
-
-Establish:
-
-```text
-body background
-primary text
-font
-focus-visible behavior
-basic selection behavior if appropriate
-safe responsive defaults
-```
-
-Avoid large global CSS files full of component-specific styling.
-
-Prefer Tailwind and semantic tokens.
-
----
-
-# 11. Initial UI Primitives
-
-Implement only primitives immediately useful for M1.
-
-Required:
-
-```text
-Button
-IconButton
-Input
-Card
-```
-
-Recommended if naturally needed:
-
-```text
-Textarea
-Label
-```
-
-Do not build all future primitives during M0.
-
-Defer:
-
-```text
-complex Dialog
-Sheet
-Tabs
-Toast
-MoneyInput
-Timeline
-SplitEditor
-```
-
-until a real feature requires them.
-
----
-
-# 12. UI Primitive Requirements
-
-Each implemented primitive should consider:
-
-- semantic HTML
-- keyboard interaction
-- focus-visible state
-- disabled state
-- touch target
-- accessible name where required
-- responsive use
-
-Do not create visual-only components that ignore accessibility.
-
----
-
-# 13. PostgreSQL Local Development
-
-Use Docker Compose for the default local PostgreSQL environment.
-
-Provide a service such as:
-
-```text
-postgres
-```
-
-with:
-
-- development database
-- development user
-- local volume
-- health check where practical
-
-Credentials used for local development may come from `.env` configuration.
-
-Do not commit production credentials.
-
----
-
-# 14. Docker Scope
-
-M0 Docker is primarily for:
-
-```text
-PostgreSQL
-```
-
-Do not containerize the entire Next.js development environment unless there is a concrete need.
-
-Developers should be able to run Next.js normally on macOS while PostgreSQL runs in Docker.
-
----
-
-# 15. Environment Configuration
-
-Provide:
-
-```text
-.env.example
-```
-
-Do not commit:
-
-```text
-.env
-.env.local
-```
-
-with real secrets.
-
-Initial configuration may include:
-
-```text
-DATABASE_URL
-BETTER_AUTH_SECRET
-BETTER_AUTH_URL
-```
-
-Use the names actually required by the installed Better Auth version.
-
-Do not invent unused variables.
-
----
-
-# 16. Environment Validation
-
-Use Zod to validate required server environment configuration.
-
-Conceptual structure:
-
-```text
-src/lib/env.ts
+Sign Up         (display name, email, password)
+Sign In
+Sign Out
+Current User    (server-side session lookup helper)
+Basic Profile   (edit display name; email read-only)
+Protected Routes
 ```
 
 Requirements:
 
-- fail early for missing required configuration
-- keep server secrets server-only
-- do not expose server variables to client bundles
-- distinguish public variables explicitly if introduced later
+- Mount the Better Auth route handler and enable email + password (D14).
+- Add Better Auth's `session`, `account`, `verification` tables through a committed migration; they reference `users.id`.
+- Users are created in TripMate's `users` table (existing mapping in `src/lib/auth/create-auth.ts`).
+- Emails stored lowercase (D10). Duplicate email sign-up shows a clear, non-enumerating error where practical.
+- Session check happens on the server. Unauthenticated access to any trip route redirects to Sign In (and returns to the original URL after sign-in).
+- Signed-in users visiting Sign In / Sign Up are redirected to My Trips.
+- No secrets, passwords, or session tokens in logs.
 
----
+## 4.2 Slice 1.2 — My Trips
 
-# 17. Drizzle Foundation
-
-Configure:
+Implement:
 
 ```text
-Drizzle ORM
-Drizzle Kit
-PostgreSQL driver
+My Trips list
+Trip cards (name, primary destination, dates, lifecycle status)
+Grouping: Current (TRAVELING) / Upcoming (UPCOMING + PLANNING) / Completed
+Collapsed "Archived" section (D16)
+Empty state with Create Trip CTA
 ```
 
-Database configuration should support:
+- Shows only trips where the current user has an ACTIVE membership.
+- Lifecycle status = `status_override ?? derived status` (D7, D12).
+- Trip switching: from any trip, the user can get back to My Trips and open another trip.
+
+## 4.3 Slice 1.3 — Create Trip
+
+Fields:
 
 ```text
-schema definitions
-migration generation
-migration execution
-application queries
-tests
+Trip Name            required
+Primary Destination  required (free text name)
+Start Date           required
+End Date             required, >= Start Date
+Timezone             required, searchable IANA list, no default (D15)
+Base Currency        required, active currencies only
 ```
 
----
-
-# 18. Database Structure
-
-Initial structure may resemble:
+One transaction:
 
 ```text
-src/db/
-├── index.ts
-└── schema/
-    ├── users.ts
-    ├── currencies.ts
-    ├── trips.ts
-    ├── members.ts
-    └── index.ts
+insert trip
+insert OWNER trip_member (user_id = current user, joined_at = now)
+insert trip_destination (sort_order = 0)
 ```
 
-Migration output should live in one clearly defined repository location.
+Then open the Trip Workspace.
 
-Follow Drizzle conventions where they are clearer than unnecessary custom structure.
+- Validate with Zod on the server; the client form may reuse the same schema.
+- Validate the timezone against the runtime IANA list and the currency against the `currencies` table.
+- One-day trips (start = end) and trips already in progress are valid.
 
----
+## 4.4 Slice 1.4 — Trip Workspace
 
-# 19. Initial Database Scope
+Responsive shell per INFORMATION_ARCHITECTURE:
 
-M0 may establish the minimum schemas required to validate the database foundation:
+Mobile bottom navigation:
 
 ```text
-users
-currencies
-trips
-trip_members
+Today   Plan   +   Expenses   Trip
 ```
 
-However:
-
-> Do not implement M1 user-facing Trip CRUD during M0.
-
-The goal is schema/migration readiness.
-
----
-
-# 20. Currency Reference Data
-
-Prepare a maintainable strategy for currency metadata:
+Desktop navigation:
 
 ```text
-code
-name
-symbol
-minor_units
-active
+Today   Plan   Expenses
+Trip   Members   Bookings   Checklist   Settings
 ```
 
-Do not manually create an incomplete arbitrary list and treat it as authoritative.
+- Lifecycle-aware landing: show the trip home appropriate for the effective status, using what exists in M1 (trip name, destination, dates, day count, status).
+- Destinations not built yet open an intentional empty state describing what will live there (D17). No broken links, no 404s.
+- The `+` action may open a placeholder sheet or empty state; it must not appear to do something it cannot.
 
-If a complete seed dataset is not appropriate during M0, establish the seed mechanism and include only clearly marked development/test data until the canonical dataset is added.
+## 4.5 Slice 1.5 — Trip Settings
 
----
-
-# 21. UUID Strategy
-
-Business entities use UUIDs.
-
-Use PostgreSQL/application UUID generation compatible with the established database architecture.
-
-If UUIDv7 support is straightforward and well-supported by the selected tooling/runtime, it may be considered.
-
-Do not introduce custom UUID complexity solely to obtain UUIDv7 during M0.
-
-Correctness and portability are more important.
-
----
-
-# 22. Migration Commands
-
-Provide clear package scripts for common database operations.
-
-Conceptually:
+Editable:
 
 ```text
-db:generate
-db:migrate
-db:studio
+Name
+Primary Destination
+Start Date / End Date
+Timezone
+Base Currency
+Archive / Unarchive
 ```
 
-Exact names may follow established project conventions.
+- OWNER only, enforced on the server.
+- Same validation as Create Trip.
+- Changing dates is allowed (no itinerary exists yet).
+- Changing base currency is allowed in M1 (no expenses exist yet). Leave a clear code comment/TODO that M5 must restrict this once expenses exist.
+- Status override (D7) may be exposed here if it fits naturally; otherwise defer and note it.
 
-Commands should be documented.
+## 4.6 Authorization
+
+- Implement trip access in one server-side place (e.g. a `requireTripMember(tripId)` style guard used by every trip read/write). M2 Slice 2.1 extends it; do not scatter checks.
+- A user with no ACTIVE membership must get the same response as for a non-existent trip (no existence leak).
+- Placeholder members (user_id NULL) never grant access.
+
+## 4.7 Currency Reference Data (D13)
+
+- Replace the development subset in `src/db/seed/currencies.ts` with the ISO 4217 List One snapshot (JSON), recording source URL and publication date in the file.
+- Exclude codes without minor units.
+- Keep the seed an idempotent upsert. Existing rows not in the list are set `active = false`, never deleted.
+- If the snapshot cannot be downloaded in the agent environment, stop and ask the owner to provide the file.
 
 ---
 
-# 23. Database Reset / Development Workflow
+# 5. Database Changes
 
-Provide a safe documented local-development workflow.
-
-If a destructive reset command is added:
-
-- make its intent obvious
-- ensure it targets local/test environments
-- do not make production destruction easy by accident
-
----
-
-# 24. Better Auth Foundation
-
-Better Auth is the locked authentication solution (ROADMAP Decision Log D1).
-
-M0 should establish enough foundation so M1 can implement authentication without architectural restructuring.
-
-This may include:
+Expected migrations (names may differ):
 
 ```text
-Better Auth dependency
-base auth configuration
-Drizzle adapter / database integration preparation if required
-auth utility location
-session typing strategy
+better_auth_tables     session, account, verification
+trip_destinations      per DATABASE.md §12 + D11 constraints
 ```
 
-Do not build the full user authentication experience unless it is required to prove configuration.
+- Generate with `pnpm db:generate`; never `drizzle-kit push`; never edit applied migrations.
+- `trip_destinations.trip_id` FK → `trips.id` ON DELETE RESTRICT, index on `trip_id`.
 
 ---
 
-# 25. Auth Boundary
+# 6. Domain Logic
 
-Keep Better Auth concerns conceptually under:
+Pure functions in `src/domain` (no React/Next/Drizzle imports), unit-tested:
 
 ```text
-src/lib/auth
+deriveTripStatus(startDate, endDate, today) → PLANNING | UPCOMING | TRAVELING | COMPLETED
+effectiveTripStatus(derived, override)
+todayInTimezone(now, timezone) → date-only string
+tripDayCount(startDate, endDate)
 ```
 
-or another clearly defined infrastructure boundary.
+Date-only values stay strings (`YYYY-MM-DD`); never pass them through JS `Date` in a way that shifts by timezone.
 
-Do not place TripMate membership authorization inside Better Auth hooks or callbacks.
-
-Trip authorization belongs to TripMate application logic.
+Required test cases include: 14-day boundary (day 15 before → PLANNING, day 14 before → UPCOMING), start day, end day, day after end, one-day trip, override set/cleared, a timezone where "today" differs from UTC.
 
 ---
 
-# 26. User Identity
-
-TripMate uses its own:
+# 7. Out of Scope
 
 ```text
-users.id
-```
-
-as domain identity.
-
-Map Better Auth's user model onto the TripMate `users` table so that the Better Auth user ID is `users.id` (see `DATABASE.md` §10 and `ARCHITECTURE.md` §26).
-
-Better Auth's session, account, and verification tables are auth infrastructure that reference `users.id`; they may be created in M0 only if required to prove configuration.
-
-Domain tables reference `users.id` only.
-
-Do not make the entire domain depend directly on provider-specific identifiers.
-
----
-
-# 27. Testing Foundation
-
-Configure:
-
-```text
-Vitest
-Playwright
-```
-
-Add DOM/component testing utilities only if an M0 test actually needs them.
-
-Do not install a large testing stack without usage.
-
----
-
-# 28. Unit Test
-
-Include at least one meaningful unit test proving the unit-test setup.
-
-Prefer testing:
-
-```text
-environment helper
-small pure utility
-```
-
-rather than:
-
-```text
-expect(true).toBe(true)
+Invitations, members UI, placeholder members UI     (M2)
+Saved places, itinerary, Today Mode content          (M3–M4)
+Bookings, checklist, default checklist (D19)         (M4)
+Expenses, balances, settlements                      (M5–M6)
+Email verification, password reset, social login     (D14)
+Avatar upload                                        (D18)
+Multiple destinations per trip                       (later)
+Cover images
+Permanent trip deletion
+PWA / offline
 ```
 
 ---
 
-# 29. Database Integration Test
+# 8. Tests
 
-Establish a path for PostgreSQL integration tests.
+## Unit (Vitest)
 
-The test should demonstrate:
+- Domain functions in §6.
+- Zod schemas for sign-up, create trip, trip settings (date order, required fields, invalid timezone).
 
-```text
-connect to test database
-execute real PostgreSQL behavior
-isolate test data
-clean up safely
-```
+## Integration (PostgreSQL, `tripmate_test`)
 
-Do not run database tests against the normal development database if avoidable.
+- Create Trip transaction creates trip + OWNER member + destination; failure in any step leaves nothing behind.
+- `UNIQUE(trip_id, sort_order)` enforced.
+- Trip access guard: member allowed; non-member denied; LEFT/REMOVED denied; placeholder never grants access.
+- User A cannot read or update User B's trip (same response as not found).
+- Non-OWNER cannot update settings or archive (seed a MEMBER row directly for this test).
+- Archive / unarchive sets and clears `archived_at`.
+- Currency seed is idempotent.
 
----
+## E2E (Playwright, 360 / 430 / 1280px)
 
-# 30. Test Database
-
-Use a dedicated test database or isolated test PostgreSQL configuration.
-
-Example concept:
-
-```text
-tripmate
-tripmate_test
-```
-
-Tests must never point to production.
+- Sign up → create "Tokyo Autumn Trip" → workspace opens.
+- Sign out → sign in → My Trips shows the trip → open it.
+- Edit trip settings; changes persist after reload.
+- Archive → appears under "Archived"; unarchive → back in main list.
+- Unauthenticated visit to a trip URL redirects to Sign In.
+- Second user cannot open the first user's trip URL.
+- Unbuilt nav destinations show their empty state.
 
 ---
 
-# 31. Playwright Foundation
+# 9. Acceptance Criteria (ROADMAP Phase 1 Quality Gate)
 
-Configure Playwright.
+A user can:
 
-Include a minimal smoke test such as:
+1. create an account
+2. sign in
+3. create a trip
+4. view the trip
+5. edit the trip
+6. switch between trips
+7. archive (and unarchive) a trip
+8. sign out, sign back in, and see the same trip
 
-```text
-application loads
-main heading is visible
-```
+And:
 
-Do not build M1 E2E flows before M1 exists.
-
----
-
-# 32. Quality Scripts
-
-Package scripts should make quality checks straightforward.
-
-Conceptually:
-
-```text
-dev
-build
-start
-
-lint
-typecheck
-test
-test:unit
-test:integration
-test:e2e
-
-db:generate
-db:migrate
-```
-
-Exact organization may be adjusted if clearer.
+- security tests prove users cannot access another user's private trip
+- all flows work at 360px without horizontal scrolling and with usable touch targets
+- forms have labels, visible focus, and accessible error messages
+- loading, empty, and error states exist for My Trips, Create Trip, Workspace, Settings
+- `pnpm check`, `pnpm test:integration`, `pnpm test:e2e`, `pnpm build` all pass
+- migrations apply cleanly to an empty database
+- README updated for any new setup step (e.g. currency seed source)
 
 ---
 
-# 33. One Quality Command
+# 10. Dependencies
 
-Prefer a convenient command that runs the main local quality gate.
-
-Example:
-
-```text
-pnpm check
-```
-
-which may run:
-
-```text
-lint
-typecheck
-unit tests
-```
-
-Do not include slow E2E automatically if it makes normal iteration unnecessarily expensive.
+Ask before adding any dependency (CLAUDE.md). Expected: none beyond the existing stack. If a date/timezone helper or combobox library seems necessary, propose it with reasons first; prefer `Intl` and platform APIs.
 
 ---
 
-# 34. CI Foundation
+# 11. Completion Report
 
-Create a minimal CI workflow appropriate for the repository host.
-
-Initial gate:
+When done, report:
 
 ```text
-install
-lint
-typecheck
-unit tests
-build
+Implemented
+Architecture Decisions (only beyond existing docs)
+Files Added / Changed (important ones)
+Database (migrations, seed)
+Validation (exact commands + outcomes)
+Deferred
+Risks / Follow-Up
 ```
 
-Database integration and Playwright may be included if the CI environment is configured reliably.
-
-Otherwise document them as the next CI extension rather than creating unstable CI.
+Then the `reviewer` subagent audits the change before owner approval.
 
 ---
 
-# 35. Git Hygiene
+# 12. Stop After M1
 
-Ensure:
+Do not start M2 (invitations, members) automatically.
 
-```text
-.env*
-build output
-test artifacts
-Playwright artifacts
-local database artifacts
-```
-
-are ignored appropriately.
-
-Do not ignore:
-
-```text
-.env.example
-migration files
-documentation
-```
-
----
-
-# 36. README
-
-Create/update `README.md` with practical developer onboarding.
-
-Include:
-
-```text
-Project summary
-
-Prerequisites
-
-Install
-
-Environment setup
-
-Start PostgreSQL
-
-Run migrations
-
-Run development server
-
-Run tests
-
-Build
-```
-
-Keep README operational.
-
-Product specification belongs in the dedicated documentation.
-
----
-
-# 37. Documentation Location
-
-If the repository stores project documents under:
-
-```text
-docs/
-```
-
-use a consistent structure.
-
-Example:
-
-```text
-docs/
-├── PROJECT_OVERVIEW.md
-├── USER_FLOWS.md
-├── FEATURES.md
-├── INFORMATION_ARCHITECTURE.md
-├── DATABASE.md
-├── ARCHITECTURE.md
-├── DESIGN_SYSTEM.md
-└── ROADMAP.md
-```
-
-Project-operational files may remain at root:
-
-```text
-AGENT_RULES.md
-CURRENT_TASK.md
-README.md
-```
-
-Do not move existing documentation unnecessarily if the repository already has an established convention.
-
----
-
-# 38. Initial Responsive Shell
-
-M0 may create the structural foundation for:
-
-```text
-mobile layout
-desktop layout
-```
-
-but should not fully implement the Trip Workspace navigation before M1 has actual trip context.
-
-Avoid fake navigation containing many dead links.
-
----
-
-# 39. Mobile Foundation
-
-Verify at minimum:
-
-```text
-small phone viewport
-large phone viewport
-desktop
-```
-
-Check:
-
-- typography
-- spacing
-- overflow
-- touch targets
-- focus
-- no accidental horizontal scrolling
-
----
-
-# 40. Accessibility Foundation
-
-M0 should establish good defaults.
-
-Required:
-
-```text
-semantic page structure
-focus-visible style
-proper buttons
-form labels
-sensible color contrast
-reduced-motion consideration where motion exists
-```
-
-Do not postpone basic accessibility architecture.
-
----
-
-# 41. Error Boundary Foundation
-
-Use framework-appropriate handling for:
-
-```text
-not found
-unexpected route error
-loading
-```
-
-Keep M0 implementation simple.
-
-Do not build an elaborate global error framework.
-
----
-
-# 42. Logging
-
-Use normal server logging conservatively during M0.
-
-Do not introduce a logging vendor yet.
-
-Do not log:
-
-```text
-BETTER_AUTH_SECRET
-DATABASE_URL credentials
-session token
-```
-
----
-
-# 43. Observability
-
-External monitoring is not required in M0.
-
-Defer provider selection until deployment becomes relevant.
-
----
-
-# 44. External Integrations
-
-Do not implement during M0:
-
-```text
-Maps provider
-Exchange-rate provider
-Email provider
-Storage provider
-AI provider
-```
-
-Integration directories/interfaces may be created only when needed.
-
-Avoid speculative empty abstractions.
-
----
-
-# 45. PWA
-
-Do not implement full PWA/offline behavior during M0.
-
-Ensure architecture does not prevent later PWA support.
-
-Actual PWA hardening belongs to:
-
-```text
-M7 — Travel Ready
-```
-
----
-
-# 46. Security Baseline
-
-M0 must:
-
-- keep secrets server-side
-- validate environment configuration
-- avoid exposing DB credentials
-- avoid unsafe debug endpoints
-- use framework security defaults appropriately
-
-Detailed trip authorization begins with M1/M2.
-
----
-
-# 47. Performance Baseline
-
-Do not add premature caching.
-
-Do not add Redis.
-
-Do not optimize based on hypothetical scale.
-
-Keep the initial application lightweight and avoid unnecessary client JavaScript.
-
----
-
-# 48. Explicitly Out of Scope
-
-M0 must not implement:
-
-```text
-Full authentication UX
-
-Trip CRUD UI
-
-Trip invitations
-
-Members UI
-
-Saved places
-
-Itinerary
-
-Today Mode
-
-Bookings
-
-Checklist
-
-Expenses
-
-Balances
-
-Settlements
-
-Maps
-
-PWA offline caching
-
-Realtime
-
-AI
-
-Native app
-```
-
-These belong to later milestones.
-
----
-
-# 49. M0 Deliverable
-
-At completion, a developer should be able to:
-
-```text
-git clone
-
-pnpm install
-
-copy .env.example
-
-start PostgreSQL
-
-run migrations
-
-pnpm dev
-```
-
-and see a functioning TripMate foundation.
-
-They should also be able to run:
-
-```text
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-with documented expected behavior.
-
----
-
-# 50. Acceptance Criteria
-
-M0 is complete only when:
-
-- Next.js application runs
-- TypeScript passes
-- Tailwind works
-- Inter is configured
-- semantic design foundation exists
-- responsive root UI works
-- PostgreSQL runs locally
-- Drizzle connects
-- migrations run from empty database
-- environment validation works
-- Better Auth foundation exists
-- Vitest works
-- PostgreSQL integration-test path works
-- Playwright smoke test works
-- lint passes
-- build passes
-- README setup instructions are accurate
-- secrets are not committed
-
----
-
-# 51. Validation Required
-
-Before marking complete, run the applicable commands.
-
-Expected categories:
-
-```text
-pnpm lint
-
-pnpm typecheck
-
-pnpm test
-
-pnpm build
-
-database migration validation
-
-Playwright smoke test
-```
-
-If database or browser validation cannot run because of environment limitations, report the exact limitation.
-
-Do not claim success without execution evidence.
-
----
-
-# 52. Completion Report
-
-When M0 is complete, report:
-
-## Implemented
-
-Short summary.
-
-## Architecture Decisions
-
-Only decisions made beyond existing docs.
-
-## Files Added / Changed
-
-Important files only.
-
-## Database
-
-Migration/schema status.
-
-## Validation
-
-Exact commands run and outcomes.
-
-## Deferred
-
-Anything intentionally left for M1+.
-
-## Risks / Follow-Up
-
-Only meaningful remaining concerns.
-
----
-
-# 53. Do Not Start M1 Automatically
-
-After M0 passes its quality gate:
-
-> Stop.
-
-Do not implement:
-
-```text
-Sign Up
-Sign In UI
-Create Trip
-```
-
-unless explicitly instructed to continue into M1.
-
-The next task should update:
-
-```text
-CURRENT_TASK.md
-```
-
-to:
-
-```text
-M1 — First Trip
-```
-
-before M1 implementation begins.
-
----
-
-# 54. Final M0 Principle
-
-The goal is not to create the most sophisticated foundation.
-
-The goal is:
-
-> A small, clean, tested foundation that allows TripMate's first real product slice to be built without architectural rework.
+After owner approval, `CURRENT_TASK.md` is updated to M2 — Travel Together before any M2 work begins.
