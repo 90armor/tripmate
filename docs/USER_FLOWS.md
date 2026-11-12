@@ -212,7 +212,7 @@ The creation flow should remain short.
 - Trip
 - Trip Owner membership
 - Itinerary days (derived from the trip date range; not stored)
-- Default checklist structure
+- Default checklist structure (created once the checklist slice ships in M4; ROADMAP D19)
 
 The user should immediately reach a useful workspace after creation.
 

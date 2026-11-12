@@ -118,8 +118,16 @@ A user can:
 5. sign back in
 6. see the same trip
 
+## M1 Scope (ROADMAP D14, D18)
+
+- Email + password only; minimum password length 8.
+- No email verification or password reset until an email provider is chosen.
+- Profile: display name editable; email read-only; avatar deferred until a storage provider is chosen.
+
 ## Deferred
 
+- email verification and password reset (until an email provider is chosen)
+- avatar upload (until a storage provider is chosen)
 - social login providers
 - passkeys
 - enterprise authentication
@@ -142,8 +150,13 @@ Trip Name
 Primary Destination
 Start Date
 End Date
+Timezone
 Base Currency
 ```
+
+Timezone is chosen from a searchable IANA timezone list with no preselected default; the device timezone is not assumed (ROADMAP D15).
+
+The primary destination is stored in `trip_destinations` with `sort_order = 0` (ROADMAP D11).
 
 Optional:
 
@@ -163,6 +176,8 @@ Users must be able to:
 - archive trip
 
 Permanent deletion may be restricted or deferred.
+
+Archived trips appear in a collapsed "Archived" section of My Trips. The OWNER can archive and unarchive a trip (ROADMAP D16).
 
 ## Business Rules
 
@@ -243,7 +258,14 @@ A trip may have a nullable manual status override. When set, the override is the
 
 This ensures users never become trapped by an incorrect automatic transition.
 
-The exact date rule separating PLANNING from UPCOMING is not yet defined (see `DATABASE.md` §11).
+Before the start date:
+
+```text
+start_date - 14 days <= today < start_date → UPCOMING
+today < start_date - 14 days               → PLANNING
+```
+
+`today` is the current date in the trip timezone (ROADMAP D12).
 
 ---
 

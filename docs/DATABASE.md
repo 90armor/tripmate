@@ -408,10 +408,11 @@ Derivation:
 ```text
 current date > end_date                 → COMPLETED
 start_date <= current date <= end_date  → TRAVELING
-current date < start_date               → PLANNING or UPCOMING
+start_date - 14 days <= current date < start_date → UPCOMING
+current date < start_date - 14 days     → PLANNING
 ```
 
-The date rule separating PLANNING from UPCOMING is not yet defined (see ROADMAP Decision Log).
+The 14-day UPCOMING window is ROADMAP Decision Log D12.
 
 `status_override` is a nullable manual override. Clearing it returns the trip to its derived status.
 
@@ -445,13 +446,18 @@ updated_at          TIMESTAMPTZ
 
 MVP requires at least one primary destination.
 
-Potential future field:
+The primary destination is the row with `sort_order = 0`. There is no `is_primary` column (ROADMAP Decision Log D11).
+
+## Constraints
 
 ```text
-is_primary
+UNIQUE(trip_id, sort_order)
+CHECK (sort_order >= 0)
 ```
 
-or primary destination may be determined by `sort_order = 0`.
+Create Trip inserts the trip, the OWNER membership, and the primary destination (`sort_order = 0`) in one transaction.
+
+M1 supports exactly one destination per trip. Additional destinations are added later without a schema change.
 
 ---
 
@@ -650,6 +656,8 @@ EUR | Euro         | € | 2
 ```
 
 Use ISO 4217 codes where applicable.
+
+The canonical dataset is a committed JSON snapshot of the ISO 4217 list (List One), with source URL and publication date recorded in the file (ROADMAP Decision Log D13). Codes without minor units (precious metals, testing codes) are excluded. `minor_units` comes from the ISO list, not from `Intl`.
 
 ---
 
