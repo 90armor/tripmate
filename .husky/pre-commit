@@ -1,0 +1,5 @@
+# Cheap check first: kebab-case names for files added or renamed under src/ and e2e/.
+git diff --cached --name-only -z -M --diff-filter=AR | bash .husky/check-file-names.sh
+
+# Then format + lint the staged files (config: "lint-staged" in package.json).
+pnpm exec lint-staged

@@ -1,0 +1,2 @@
+# Lint + format check + typecheck + unit tests. Integration and e2e run in CI only.
+pnpm check
