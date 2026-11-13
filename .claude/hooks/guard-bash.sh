@@ -29,6 +29,19 @@ echo "$cmd" | grep -Eq 'git[[:space:]]+(checkout|restore)[[:space:]]+(--[[:space
   && block "discarding all working-tree changes is not allowed."
 echo "$cmd" | grep -Eq 'git[[:space:]]+branch[^;&|]*[[:space:]]-D' && block "force-deleting branches is not allowed."
 
+# --- Git hook bypass (owner-only) -------------------------------------------
+# The husky pre-commit/pre-push hooks and the lint-staged gate must not be skipped by an agent.
+# `git_cmd` also matches global options between `git` and the subcommand (e.g. `git -C dir commit`).
+# Git accepts unique prefixes of long options, so `--no-v[a-z]*` also covers --no-v, --no-verif, ...
+# Text-pattern guardrail: a commit message that contains " -n" is a safe-direction false positive.
+git_cmd='git[[:space:]]+([^;&|]*[[:space:]])?'
+echo "$cmd" | grep -Eq "${git_cmd}commit[^;&|]*[[:space:]](--no-v[a-z]*|-[a-zA-Z]*n[a-zA-Z]*)([[:space:]]|\$)" \
+  && block "git commit --no-verify / -n skips the pre-commit hooks (owner-only)."
+echo "$cmd" | grep -Eq "${git_cmd}push[^;&|]*[[:space:]]--no-v[a-z]*([[:space:]]|\$)" \
+  && block "git push --no-verify skips the pre-push hook (owner-only). (git push -n is --dry-run and stays allowed.)"
+echo "$cmd" | grep -Eq "HUSKY=['\"]?0" && block "HUSKY=0 disables the Git hooks (owner-only)."
+echo "$cmd" | grep -Eiq 'core\.hookspath' && block "changing core.hooksPath disables the Git hooks (owner-only)."
+
 # --- Database --------------------------------------------------------------
 echo "$cmd" | grep -Eq 'drizzle-kit[[:space:]]+(push|drop)' \
   && block "schema changes must go through generated, committed migrations (no drizzle-kit push/drop)."

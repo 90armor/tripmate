@@ -1638,6 +1638,18 @@ Avoid clever abstractions that make business rules difficult to follow.
 
 ---
 
+# 70a. Naming Conventions
+
+Enforced by ESLint and the Git pre-commit hook (ROADMAP D20):
+
+- Files and directories under `src/` and `e2e/`: kebab-case. Next.js forms (`[id]`, `(group)`, `@slot`, `_private`) are allowed; `src/db/migrations/` is exempt.
+- Variables and functions: camelCase. React components and types: PascalCase. Constants: UPPER_CASE.
+- Parameters: camelCase or PascalCase (component-valued). Test files may also use UPPER_CASE parameters for env-var test tables.
+- Destructured names and object properties are not enforced (they mirror DB columns, headers, and third-party shapes).
+- `git commit --no-verify`, `HUSKY=0`, and changing `core.hooksPath` are owner-only. Do not bypass the hooks.
+
+---
+
 # 71. Comments
 
 Comments should explain:

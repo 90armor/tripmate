@@ -111,7 +111,7 @@ pnpm dev          # http://localhost:3000
 | Command                 | What it runs                                       | Needs                         |
 | ----------------------- | -------------------------------------------------- | ----------------------------- |
 | `pnpm check`            | lint + format check + typecheck + unit tests       | nothing                       |
-| `pnpm lint`             | ESLint                                             | nothing                       |
+| `pnpm lint`             | ESLint (warnings fail the run)                     | nothing                       |
 | `pnpm format:check`     | Prettier check (`pnpm format` to fix)              | nothing                       |
 | `pnpm typecheck`        | `tsc --noEmit`                                     | nothing                       |
 | `pnpm test:unit`        | Vitest unit tests                                  | nothing                       |
@@ -129,6 +129,22 @@ Integration tests:
   so those rows are committed; the test deletes the users it created in `afterEach`.
 
 `pnpm test:e2e` starts its own dev server on port 3100 (or reuses one already running there).
+
+## Git hooks
+
+`pnpm install` sets up [husky](https://typicode.github.io/husky/) hooks automatically (the
+`prepare` script). Nothing else to configure.
+
+| Hook         | Runs                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------- |
+| `pre-commit` | kebab-case check for files added or renamed under `src/` and `e2e/` (migrations exempt), then Prettier + ESLint (zero warnings) on the staged files via lint-staged |
+| `pre-push`   | `pnpm check`                                                                                  |
+
+Integration and e2e tests run in CI only. When Claude Code edits a file it is also formatted and
+linted by `.claude/hooks/format-lint.sh`.
+
+Skipping the hooks (`git commit --no-verify`, `HUSKY=0`, changing `core.hooksPath`) is for the
+owner only; `.claude/hooks/guard-bash.sh` blocks agents from doing it. Decision: ROADMAP D20.
 
 ## Build
 

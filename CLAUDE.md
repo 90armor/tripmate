@@ -10,7 +10,7 @@ itinerary, places, hotels/bookings, food, activities, expenses, and settlement.
 3. Read the `docs/` files that task names. Docs map:
    - Product: `PROJECT_OVERVIEW`, `USER_FLOWS`, `FEATURES`, `INFORMATION_ARCHITECTURE`
    - Technical: `ARCHITECTURE`, `DATABASE`, `DESIGN_SYSTEM`
-   - Scope and locked decisions: `ROADMAP` (see its **Decision Log**, D1–D19)
+   - Scope and locked decisions: `ROADMAP` (see its **Decision Log**, D1–D20)
 
 If the docs contradict each other or do not decide something you need, stop and ask.
 Do not pick an answer and write it into the docs as if it were decided.
@@ -48,11 +48,15 @@ Do not pick an answer and write it into the docs as if it were decided.
 - `pnpm test:integration` — PostgreSQL integration tests against `tripmate_test`
 - `pnpm test:e2e` — Playwright (360, 430 and 1280px)
 - `pnpm build` — production build
+- Git hooks (husky) install automatically on `pnpm install`: pre-commit runs the kebab-case file-name
+  check and lint-staged; pre-push runs `pnpm check`. Claude edits are also formatted and linted by a
+  PostToolUse hook. See D20.
 
 M0 baseline: check 29/29 unit, integration 16/16, e2e 15/15, build OK.
 
 ## Blocked by hooks (do not try to work around them)
 
 Destructive shell commands (`rm -rf` outside build/cache folders, force push, `git reset --hard`,
-dropping databases or volumes, `drizzle-kit push`) and access to real `.env` files are blocked.
+dropping databases or volumes, `drizzle-kit push`), access to real `.env` files, and skipping the
+Git hooks (`--no-verify`, `HUSKY=0`, `core.hooksPath`) are blocked.
 If you genuinely need one, explain why and ask the owner to run it.
