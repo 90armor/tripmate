@@ -1,7 +1,9 @@
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Database } from "@/db/client";
-import { users } from "@/db/schema";
+import { account, session, users, verification } from "@/db/schema";
+import { httpAllowList } from "./http-allow-list";
+import { guardUserWrite } from "./user-write-guard";
 
 /**
  * Better Auth configuration (ROADMAP D1, ARCHITECTURE §25-26).
@@ -9,21 +11,41 @@ import { users } from "@/db/schema";
  * Better Auth handles authentication only. TripMate trip authorization never
  * lives in Better Auth hooks or callbacks (CURRENT_TASK §25).
  *
- * M0 scope: configuration only. No sign-in methods are enabled and no route
- * handler is mounted; the session/account/verification tables arrive with
- * M1 Slice 1.1.
+ * M1 scope (ROADMAP D14): email + password only, minimum length 8. No email
+ * verification, password reset, or social login until an email provider exists.
  *
  * Built by a factory so integration tests can bind it to the test database;
- * the app instance lives in ./auth.ts.
+ * the app instance lives in ./auth.ts, which adds the Next.js cookie plugin
+ * (kept out of here so Vitest can import this file without Next.js).
  */
-export function createAuth(config: { db: Database; secret: string; baseURL: string }) {
+export function createAuth(config: {
+  db: Database;
+  secret: string;
+  baseURL: string;
+  plugins?: BetterAuthPlugin[];
+}) {
   return betterAuth({
     secret: config.secret,
     baseURL: config.baseURL,
+    // Only the M1 email/password and session endpoints are reachable over HTTP.
+    plugins: [httpAllowList(), ...(config.plugins ?? [])],
+    // Every write of the users row, from any endpoint or auth.api call, gets the
+    // display-name rule and drops the avatar (ROADMAP D18).
+    databaseHooks: {
+      user: {
+        create: { before: async (user) => ({ data: guardUserWrite(user) }) },
+        update: { before: async (user) => ({ data: guardUserWrite(user) }) },
+      },
+    },
     database: drizzleAdapter(config.db, {
       provider: "pg",
-      schema: { user: users },
+      schema: { user: users, session, account, verification },
     }),
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      autoSignIn: true,
+    },
     // Better Auth's user model is mapped onto TripMate's users table (DATABASE §10).
     // Keys are Drizzle schema property names. id, email, emailVerified, createdAt and
     // updatedAt already match.

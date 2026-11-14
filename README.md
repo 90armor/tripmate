@@ -7,8 +7,10 @@ This README is operational: how to run, test, and build. Product and technical d
 [`docs/`](docs/), agent rules in [`AGENT_RULES.md`](AGENT_RULES.md), and the active scope in
 [`CURRENT_TASK.md`](CURRENT_TASK.md).
 
-**Current state:** M0 — Foundation. The app renders a foundation preview page; no product features
-exist yet.
+**Current state:** M1 — First Trip. Sign up / sign in / sign out (email + password), profile
+(display name), My Trips, Create Trip, the Trip Workspace (Overview plus intentional empty states for
+sections not built yet), and Trip Settings with archive / unarchive. Trips are single-member until
+invitations arrive in M2.
 
 ## Stack
 
@@ -52,6 +54,7 @@ Then edit `.env`:
 | `TEST_DATABASE_URL`  | integration tests only          | Must name a database ending in `_test`, different from `DATABASE_URL` |
 | `BETTER_AUTH_SECRET` | app (Better Auth)               | ≥ 32 characters                                             |
 | `BETTER_AUTH_URL`    | app (Better Auth)               | Base URL of the app, e.g. `http://localhost:3000`           |
+| `DEV_ALLOWED_ORIGINS` | `pnpm dev` only (optional)     | Comma-separated extra hostnames, e.g. your LAN IP — see [Test on a phone](#test-on-a-phone) |
 
 The server validates configuration at startup and **exits with a list of the missing or invalid
 variable names** (never their values) if anything is wrong.
@@ -72,12 +75,27 @@ pnpm db:up        # docker compose up -d --wait postgres
 
 ```sh
 pnpm db:migrate   # apply committed migrations to DATABASE_URL
-pnpm db:seed      # upsert development reference data (safe to re-run)
+pnpm db:seed      # upsert ISO 4217 currency reference data (safe to re-run)
 ```
 
-> **Currency data is a development/test subset** (JPY, USD, EUR, KWD), clearly marked in
-> `src/db/seed/currencies.ts`. It is **not** the canonical ISO 4217 list, which must be added before
-> M1 Create Trip. `db:seed` refuses to run with `NODE_ENV=production`.
+`db:seed` refuses to run with `NODE_ENV=production`; production seeding is set up with deployment.
+
+### Currency reference data
+
+Currencies come from a committed snapshot of **ISO 4217 List One**,
+[`src/db/seed/iso-4217-list-one.json`](src/db/seed/iso-4217-list-one.json), which records its
+source URL, publication date and retrieval date (ROADMAP D13). Excluded: codes without minor units
+(metals, bond units, XDR, XSU, XUA, XTS, XXX) and ISO fund codes (`IsFund="true"`, e.g. USN, BOV,
+CLF). `symbol` stays NULL; money is displayed with `Intl.NumberFormat` currency formatting. The
+seed upserts every listed code; a code that disappears from a newer list (or a fund code seeded
+before D13 was amended) is set `active = false`, never deleted.
+
+To refresh the snapshot:
+
+1. Download List One XML from SIX (linked from SIX "Data standards"):
+   `https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml`
+2. `pnpm exec tsx src/db/seed/import-iso-4217.ts path/to/list-one.xml`
+3. Review the JSON diff, commit it, then run `pnpm db:seed`.
 
 ### Changing the schema
 
@@ -107,6 +125,11 @@ This deletes all local development and test data.
 pnpm dev          # http://localhost:3000
 ```
 
+Open it and **create an account** on the Sign Up page — there are no built-in users. Accounts are
+email + password ([Better Auth](https://www.better-auth.com/), sessions in PostgreSQL); there is no
+email verification yet, so any address works locally. Run `pnpm db:seed` first, or Create Trip has no
+currencies to offer. To try it on a phone, see [Test on a phone](#test-on-a-phone).
+
 ## Tests and quality checks
 
 | Command                 | What it runs                                       | Needs                         |
@@ -118,7 +141,7 @@ pnpm dev          # http://localhost:3000
 | `pnpm test:unit`        | Vitest unit tests                                  | nothing                       |
 | `pnpm test:integration` | Vitest against real PostgreSQL (`tripmate_test`)   | PostgreSQL running (`db:up`)  |
 | `pnpm test`             | unit + integration                                 | PostgreSQL running            |
-| `pnpm test:e2e`         | Playwright smoke tests at 360px, 430px, 1280px     | `.env`; first time: `pnpm exec playwright install chromium` |
+| `pnpm test:e2e`         | Playwright at 360px, 430px, 1280px (Chromium) plus iPhone WebKit for Create Trip and Trip Settings | `.env`; first time: `pnpm exec playwright install chromium webkit` |
 
 Integration tests:
 
@@ -129,7 +152,20 @@ Integration tests:
   `src/lib/auth/create-auth.int.test.ts` lets Better Auth write through its own connection,
   so those rows are committed; the test deletes the users it created in `afterEach`.
 
-`pnpm test:e2e` starts its own dev server on port 3100 (or reuses one already running there).
+`pnpm test:e2e` starts its own dev server on port 3100 against `tripmate_test` (never the
+development database), first applying migrations and seeding currencies there. Each test signs up its
+own random account. Next.js allows one `next dev` per project folder, so stop any other `pnpm dev`
+first.
+
+### Test on a phone
+
+`pnpm dev` listens on your network, but Next.js only lets `localhost` use its dev reload socket.
+From a phone the page then never becomes interactive and **reloads itself after about 40 seconds,
+clearing the form**. To allow your computer's LAN address:
+
+1. Find it: `ipconfig getifaddr en0` (macOS).
+2. Add it to `.env`: `DEV_ALLOWED_ORIGINS=192.168.1.20` (hostname only — no `http://`, no port).
+3. Restart `pnpm dev`, then open `http://192.168.1.20:3000` on the phone (same Wi-Fi).
 
 ## Git hooks
 
@@ -162,20 +198,22 @@ pnpm start        # serves the production build; requires a real BETTER_AUTH_SEC
 - **integration:** the integration suite against a fresh PostgreSQL 18 service container, which also
   proves the migrations apply to an empty database
 
-Playwright smoke tests are not in CI yet; they are the next CI extension.
+Playwright tests are not in CI yet; they are the next CI extension.
 
 ## Project structure
 
 ```text
 src/
 ├── app/              Next.js routes, layout, global styles and design tokens
-├── components/ui/    Shared UI primitives (Button, IconButton, Input, Textarea, Label, Card)
+├── components/       Shared UI primitives (ui/) and app chrome (shared/)
 ├── db/               Drizzle client, schema, migrations, seed
-├── lib/              Validated env config, Better Auth setup, small utilities
+├── domain/           Pure business rules (trip status, dates) — no React, Next.js or database
+├── lib/              Validated env config, Better Auth setup, errors, small utilities
+├── modules/          Feature modules: schemas, services, queries, actions, components
+│                     (auth, users, trips — incl. the trip access guard — currencies)
 └── test/integration/ Integration test harness and test-database guard
-e2e/                  Playwright smoke tests
+e2e/                  Playwright end-to-end tests
 docker/               PostgreSQL init scripts
 ```
 
-Further directories (`src/modules`, `src/domain`, `src/integrations`) are added when the first
-code that belongs in them exists.
+`src/integrations` is added when the first external integration exists.

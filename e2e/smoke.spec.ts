@@ -1,38 +1,37 @@
 import { expect, test } from "@playwright/test";
+import { expectNoHorizontalScroll, expectTouchTargets, gotoPage } from "./helpers";
 
-test.describe("foundation smoke", () => {
-  test("renders the main heading and labelled form controls", async ({ page }) => {
+// Baseline UI checks, now against Sign In (the M0 preview page at "/" was replaced
+// by a redirect in M1).
+test.describe("smoke", () => {
+  test("/ sends signed-out visitors to Sign In", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "TripMate" })).toBeVisible();
-    await expect(page.getByLabel("Trip name")).toBeVisible();
-    await expect(page.getByLabel("Notes")).toBeVisible();
+    await expect(page).toHaveURL(/\/sign-in$/);
+  });
+
+  test("Sign In renders its heading and labelled form controls", async ({ page }) => {
+    await page.goto("/sign-in");
+    await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(page.getByLabel("Password")).toBeVisible();
   });
 
   test("has no horizontal scrolling", async ({ page }) => {
-    await page.goto("/");
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(0);
+    for (const path of ["/sign-in", "/sign-up"]) {
+      await gotoPage(page, path);
+      await expectNoHorizontalScroll(page);
+    }
   });
 
-  test("every button meets the 44×44 px touch target minimum", async ({ page }) => {
-    await page.goto("/");
-    // Scoped to the page content: the dev server injects its own (smaller) Next.js
-    // Dev Tools button outside <main>, which is not part of TripMate's UI.
-    const buttons = await page.getByRole("main").getByRole("button").all();
-    expect(buttons.length).toBeGreaterThan(0);
-    for (const button of buttons) {
-      const box = await button.boundingBox();
-      const name = (await button.getAttribute("aria-label")) ?? (await button.innerText());
-      expect(box, `bounding box for "${name}"`).not.toBeNull();
-      expect.soft(box!.width, `width of "${name}"`).toBeGreaterThanOrEqual(44);
-      expect.soft(box!.height, `height of "${name}"`).toBeGreaterThanOrEqual(44);
+  test("controls meet the 44 px touch target minimum", async ({ page }) => {
+    for (const path of ["/sign-in", "/sign-up"]) {
+      await gotoPage(page, path);
+      await expectTouchTargets(page);
     }
   });
 
   test("keyboard focus shows the visible focus ring", async ({ page }) => {
-    await page.goto("/");
+    await gotoPage(page, "/sign-in");
     // Tab until focus lands in TripMate's content (the dev server may add its own
     // focusable controls before it).
     const focused = page.getByRole("main").locator(":focus");
@@ -40,7 +39,7 @@ test.describe("foundation smoke", () => {
       await page.keyboard.press("Tab");
     }
     await expect(focused).toHaveCount(1);
-    await expect(focused).toHaveAccessibleName("More options (preview)");
+    await expect(focused).toHaveAccessibleName("Email");
     const outline = await focused.evaluate((el) => {
       const style = getComputedStyle(el);
       return { style: style.outlineStyle, width: parseFloat(style.outlineWidth) };

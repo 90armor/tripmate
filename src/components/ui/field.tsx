@@ -37,7 +37,9 @@ export function FieldShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    // min-w-0: as a grid or flex item the field may shrink below its control's
+    // intrinsic width (iOS gives date inputs a wide one), so it never overflows.
+    <div className="flex min-w-0 flex-col gap-1.5">
       <Label htmlFor={controlId}>{label}</Label>
       {children}
       {hint ? (
@@ -59,7 +61,7 @@ export function FieldShell({
  * when focusing inputs with a smaller font size.
  */
 export const controlBase =
-  "w-full rounded-md border bg-surface px-3 text-body-lg text-fg placeholder:text-fg-muted " +
+  "w-full min-w-0 rounded-md border bg-surface px-3 text-body-lg text-fg placeholder:text-fg-muted " +
   "disabled:cursor-not-allowed disabled:bg-disabled disabled:text-on-disabled";
 
 export function controlBorder(hasError: boolean): string {

@@ -152,6 +152,22 @@
     background-color: var(--action-primary-subtle);
     color: var(--text-primary);
   }
+
+  /* iOS Safari renders date inputs as a native inline-flex control with an
+     intrinsic minimum width that ignores width: 100%, so they overflow narrow
+     cards. Drop the native box on iOS only (the picker still opens on tap) and
+     left-align the value like the other fields. */
+  @supports (-webkit-touch-callout: none) {
+    input[type="date"] {
+      -webkit-appearance: none;
+      appearance: none;
+      display: block;
+    }
+  }
+
+  ::-webkit-date-and-time-value {
+    text-align: start;
+  }
 }
 
 /* Respect reduced-motion preferences (§68). */

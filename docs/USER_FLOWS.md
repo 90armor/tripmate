@@ -180,12 +180,16 @@ Destination
     ↓
 Start / End Date
     ↓
+Timezone
+    ↓
 Base Currency
     ↓
 Create
     ↓
 Trip Workspace
 ```
+
+Timezone is required and chosen from a searchable IANA timezone list, with no default; the device timezone is not assumed (ROADMAP D15).
 
 Example:
 
@@ -198,6 +202,9 @@ Tokyo, Japan
 
 Dates:
 Nov 15 – Nov 21
+
+Timezone:
+Asia/Tokyo
 
 Base currency:
 JPY

@@ -123,6 +123,7 @@ A user can:
 - Email + password only; minimum password length 8.
 - No email verification or password reset until an email provider is chosen.
 - Profile: display name editable; email read-only; avatar deferred until a storage provider is chosen.
+- These rules are enforced server-side on every write path, including Better Auth endpoints: the display name is validated and no avatar can be set (ROADMAP D18).
 
 ## Deferred
 
@@ -178,6 +179,8 @@ Users must be able to:
 Permanent deletion may be restricted or deferred.
 
 Archived trips appear in a collapsed "Archived" section of My Trips. The OWNER can archive and unarchive a trip (ROADMAP D16).
+
+Archived trips are read-only: members can still open them, but every change is rejected except the OWNER's unarchive (ROADMAP D22). Archiving an already archived trip is a no-op (idempotent).
 
 ## Business Rules
 
