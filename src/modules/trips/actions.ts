@@ -17,6 +17,7 @@ import {
   type TripDetailsField,
   type TripSettingsField,
 } from "./schemas";
+import { parseArchiveArgs, parseTripIdArg } from "./action-args";
 import { createTrip } from "./services/create-trip";
 import { setTripArchived } from "./services/set-trip-archived";
 import { updateTripSettings } from "./services/update-trip-settings";
@@ -62,12 +63,18 @@ function tripWriteError(error: unknown): string | undefined {
   return undefined;
 }
 
-/** Trip Settings form (CURRENT_TASK §4.5). `tripId` is bound by the page. */
+/**
+ * Trip Settings form (CURRENT_TASK §4.5). `boundTripId` is bound by the page,
+ * but arrives from the browser like any input, so it is parsed first. A
+ * malformed value gets the same not-found response as someone else's trip.
+ */
 export async function updateTripSettingsAction(
-  tripId: string,
+  boundTripId: string,
   _previous: TripSettingsFormState,
   formData: FormData,
 ): Promise<TripSettingsFormState> {
+  const tripId = parseTripIdArg(boundTripId);
+  if (!tripId) notFound();
   const user = await requireUser(`/trips/${tripId}/settings`);
   const values = formValues(formData, TRIP_SETTINGS_FIELDS);
 
@@ -89,12 +96,17 @@ export async function updateTripSettingsAction(
 
 /**
  * Archive (archived = true) or unarchive a trip. Both arguments are bound by
- * the page; used with useActionState, whose state and form data it ignores.
+ * the page and parsed here: `archived` must be a real boolean, never a truthy
+ * string such as "false". Used with useActionState, whose state and form data
+ * it ignores.
  */
 export async function setTripArchivedAction(
-  tripId: string,
-  archived: boolean,
+  boundTripId: string,
+  boundArchived: boolean,
 ): Promise<ArchiveFormState> {
+  const args = parseArchiveArgs(boundTripId, boundArchived);
+  if (!args) notFound();
+  const { tripId, archived } = args;
   const user = await requireUser(`/trips/${tripId}/settings`);
   try {
     await setTripArchived(getDb(), user, tripId, archived);
