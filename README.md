@@ -81,9 +81,9 @@ pnpm db:seed      # upsert ISO 4217 currency reference data (safe to re-run)
 
 Currencies come from a committed snapshot of **ISO 4217 List One**,
 [`src/db/seed/iso-4217-list-one.json`](src/db/seed/iso-4217-list-one.json), which records its
-source URL and publication date (ROADMAP D13). Excluded: codes without minor units (precious
-metals, bond units, XDR, testing code XTS, XXX) and ISO fund codes (`IsFund="true"`, e.g. USN, CLF).
-ISO has no currency symbols, so `symbol` is NULL and the UI derives display symbols with `Intl`. The
+source URL, publication date and retrieval date (ROADMAP D13). Excluded: codes without minor units
+(metals, bond units, XDR, XSU, XUA, XTS, XXX) and ISO fund codes (`IsFund="true"`, e.g. USN, BOV,
+CLF). `symbol` stays NULL; money is displayed with `Intl.NumberFormat` currency formatting. The
 seed upserts every listed code; a code that disappears from a newer list (or a fund code seeded
 before D13 was amended) is set `active = false`, never deleted.
 
