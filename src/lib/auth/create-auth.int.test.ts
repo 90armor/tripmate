@@ -201,66 +201,81 @@ describe("every write path validates profile fields (ROADMAP D18)", () => {
     return row;
   }
 
+  /** Signs up in-process, as the Sign Up Server Action does, and returns the session cookie. */
   async function signedInUser() {
     const email = `guard.${randomUUID()}@example.com`;
-    const response = await http("/sign-up/email", {
+    const { headers } = await auth.api.signUpEmail({
       body: { email, password: PASSWORD, name: "Guarded" },
+      returnHeaders: true,
     });
-    expect(response.status).toBe(200);
-    const cookie = response.headers
+    const cookie = headers
       .getSetCookie()
       .map((c) => c.split(";")[0])
       .join("; ");
     return { user: (await userByEmail(email))!, cookie };
   }
 
-  it("exposes only the allow-listed endpoints over HTTP", async () => {
-    // Every endpoint this Better Auth version defines, so an upgrade that adds
-    // one is covered too: all answer 404 unless allow-listed.
-    const paths = Object.values(auth.api as Record<string, { path?: unknown }>)
-      .map((endpoint) => endpoint.path)
-      .filter((path): path is string => typeof path === "string")
-      .map((path) => path.replace(/:[^/]+/g, "x"));
-    expect(paths.length).toBeGreaterThan(20);
-
-    for (const path of paths) {
-      const response = await http(path, { body: {} });
-      if (HTTP_ENABLED_AUTH_PATHS.has(path)) {
-        expect(response.status, path).not.toBe(404);
-      } else {
-        expect(response.status, path).toBe(404);
-      }
-    }
-    // Variants of a disabled path stay disabled.
-    for (const path of ["/update-user/", "/Update-User", "/update%2Duser", "/callback/google"]) {
-      expect((await http(path, { body: {} })).status, path).toBe(404);
-    }
-  });
-
-  it.each([
+  const BAD_NAMES = [
     ["empty", ""],
     ["blank", "   "],
     ["too long", "x".repeat(101)],
     ["padded with spaces", " Padded "],
-  ])("rejects sign-up over HTTP with a %s name and creates no user", async (_case, name) => {
-    const email = `bad-name.${randomUUID()}@example.com`;
-    const response = await http("/sign-up/email", { body: { email, password: PASSWORD, name } });
-    expect(response.status).toBe(400);
-    // Rejected by our user hook, not by Better Auth's own (looser) body schema.
-    expect(await response.json()).toMatchObject({ code: "INVALID_DISPLAY_NAME" });
-    expect(await userByEmail(email)).toBeUndefined();
+  ] as const;
+
+  it("answers 404 for every Better Auth endpoint over HTTP", async () => {
+    // Every endpoint this Better Auth version defines, so an upgrade that adds
+    // one is covered too. TripMate calls auth.api in-process only.
+    expect(HTTP_ENABLED_AUTH_PATHS.size).toBe(0);
+    const paths = Object.values(auth.api as Record<string, { path?: unknown }>)
+      .map((endpoint) => endpoint.path)
+      .filter((path): path is string => typeof path === "string")
+      .map((path) => path.replace(/:[^/]+/g, "x"));
+    expect(paths).toContain("/sign-in/email");
+    expect(paths.length).toBeGreaterThan(20);
+
+    for (const path of paths) {
+      expect((await http(path, { body: {} })).status, path).toBe(404);
+    }
+    for (const path of [
+      "/sign-up/email/",
+      "/Sign-In/Email",
+      "/update%2Duser",
+      "/callback/google",
+    ]) {
+      expect((await http(path, { body: {} })).status, path).toBe(404);
+    }
   });
+
+  it("creates no user through HTTP sign-up, whatever the name", async () => {
+    for (const name of ["Valid Name", ...BAD_NAMES.map(([, bad]) => bad)]) {
+      const email = `http-sign-up.${randomUUID()}@example.com`;
+      const response = await http("/sign-up/email", { body: { email, password: PASSWORD, name } });
+      expect(response.status).toBe(404);
+      expect(await userByEmail(email)).toBeUndefined();
+    }
+  });
+
+  it.each(BAD_NAMES)(
+    "rejects in-process sign-up with a %s name and creates no user",
+    async (_case, name) => {
+      const email = `bad-name.${randomUUID()}@example.com`;
+      // Rejected by our user hook, not by Better Auth's own (looser) body schema.
+      await expect(
+        auth.api.signUpEmail({ body: { email, password: PASSWORD, name } }),
+      ).rejects.toMatchObject({ body: { code: "INVALID_DISPLAY_NAME" } });
+      expect(await userByEmail(email)).toBeUndefined();
+    },
+  );
 
   it("ignores an image sent with sign-up: avatar_url stays NULL", async () => {
     const email = `avatar.${randomUUID()}@example.com`;
-    const response = await http("/sign-up/email", {
+    await auth.api.signUpEmail({
       body: { email, password: PASSWORD, name: "Avatar", image: "https://evil.example/a.png" },
     });
-    expect(response.status).toBe(200);
     expect(await userByEmail(email)).toMatchObject({ displayName: "Avatar", avatarUrl: null });
   });
 
-  it("does not expose /update-user over HTTP", async () => {
+  it("does not expose /update-user over HTTP, even with a valid session", async () => {
     const { user, cookie } = await signedInUser();
     for (const body of [
       { name: "" },
@@ -277,8 +292,10 @@ describe("every write path validates profile fields (ROADMAP D18)", () => {
     const { user, cookie } = await signedInUser();
     const headers = new Headers({ cookie });
 
-    for (const name of ["", "   ", "x".repeat(101), " Padded "]) {
-      await expect(auth.api.updateUser({ headers, body: { name } })).rejects.toThrow();
+    for (const [, name] of BAD_NAMES) {
+      await expect(auth.api.updateUser({ headers, body: { name } })).rejects.toMatchObject({
+        body: { code: "INVALID_DISPLAY_NAME" },
+      });
     }
     await auth.api.updateUser({
       headers,

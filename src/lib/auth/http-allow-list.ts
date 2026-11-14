@@ -1,37 +1,24 @@
 import type { BetterAuthPlugin } from "better-auth";
 
 /**
- * The only Better Auth endpoints reachable over HTTP (/api/auth/*). Everything
- * else answers 404, including endpoints a future Better Auth version adds.
+ * Better Auth endpoints reachable over HTTP (/api/auth/*): none. Every request
+ * answers 404, including endpoints a future Better Auth version adds.
  *
- * TripMate's own pages never call these over HTTP: the Server Actions call
- * auth.api.* in-process, which does not go through this check. The four kept
- * are Better Auth's public form of exactly the M1 flows (ROADMAP D1, D14), and
- * expose nothing the sign-up / sign-in pages don't already:
+ * TripMate never calls Better Auth over HTTP: sign-up, sign-in, sign-out,
+ * sessions and profile updates all run in Server Actions / server code through
+ * auth.api.* in-process, which does not pass through this check. There is no
+ * browser auth client (authClient / useSession).
  *
- * - /sign-up/email  create an account (same rules as the form: Better Auth
- *                   lowercases email, min password 8; the user hooks check the
- *                   name and drop the avatar)
- * - /sign-in/email  start a session
- * - /sign-out       end the caller's own session
- * - /get-session    read the caller's own session (read-only)
- *
- * Disabled on purpose, among others: /update-user (profile changes go through
- * the Profile form), /change-email (email is read-only, D18), /change-password,
- * /delete-user, password reset and email verification (no email provider,
- * D14), social sign-in and account linking, session listing / revocation.
+ * Reopen a path only when a real client needs it (e.g. a native app), and then
+ * together with rate limiting for public sign-up / sign-in. The user hooks
+ * (user-write-guard.ts) protect the users row either way.
  *
  * Why not Better Auth's `disabledPaths`: it matches exact paths only, so it
  * cannot disable parameterised routes such as /callback/:id or
  * /reset-password/:token, and as a deny-list it would silently miss endpoints
  * added in an upgrade. An allow-list fails closed.
  */
-export const HTTP_ENABLED_AUTH_PATHS: ReadonlySet<string> = new Set([
-  "/sign-up/email",
-  "/sign-in/email",
-  "/sign-out",
-  "/get-session",
-]);
+export const HTTP_ENABLED_AUTH_PATHS: ReadonlySet<string> = new Set<string>();
 
 const DEFAULT_BASE_PATH = "/api/auth";
 
