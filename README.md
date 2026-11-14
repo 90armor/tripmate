@@ -141,7 +141,7 @@ currencies to offer. To try it on a phone, see [Test on a phone](#test-on-a-phon
 | `pnpm test:unit`        | Vitest unit tests                                  | nothing                       |
 | `pnpm test:integration` | Vitest against real PostgreSQL (`tripmate_test`)   | PostgreSQL running (`db:up`)  |
 | `pnpm test`             | unit + integration                                 | PostgreSQL running            |
-| `pnpm test:e2e`         | Playwright at 360px, 430px, 1280px (Chromium) plus iPhone WebKit for Create Trip | `.env`; first time: `pnpm exec playwright install chromium webkit` |
+| `pnpm test:e2e`         | Playwright at 360px, 430px, 1280px (Chromium) plus iPhone WebKit for Create Trip and Trip Settings | `.env`; first time: `pnpm exec playwright install chromium webkit` |
 
 Integration tests:
 

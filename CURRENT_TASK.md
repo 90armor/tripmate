@@ -69,7 +69,7 @@ Owner-approved on 2026-11-11 (ROADMAP Decision Log):
 | D17 | Full workspace navigation shown; unbuilt destinations show an intentional empty state. |
 | D18 | Profile: display name editable, email read-only, no avatar. Enforced server-side on every write path, including Better Auth endpoints. |
 | D19 | No default checklist at trip creation (checklist arrives in M4). |
-| D22 | Archived trips are read-only: viewable by members; every write rejected except OWNER unarchive; enforced in the access guard (`{ forWrite: true }`), not UI. (Added 2026-11-14.) |
+| D22 | Archived trips are read-only: viewable by members; every write rejected except OWNER unarchive; enforced in the access guard (`{ forWrite: true }`), not UI. Archiving an already archived trip is a no-op (idempotent). (Added 2026-11-14.) |
 
 Earlier decisions still apply, especially D1 (Better Auth), D7 (derived status + override), D9 (one `trip_members` row per INSERT), D10 (lowercase emails).
 
