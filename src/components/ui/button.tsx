@@ -31,6 +31,28 @@ const sizes: Record<ButtonSize, string> = {
   large: "min-h-12 text-body-lg", // 48px preferred for frequent actions
 };
 
+/**
+ * Button styling for elements that are not <button>, e.g. a navigation link that
+ * should look like the primary action ("Create a trip"). Keeps one source of
+ * truth for button appearance; links stay links for accessibility.
+ */
+export function buttonClassName({
+  variant = "primary",
+  size = "default",
+  element = "button",
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  element?: "button" | "link";
+  className?: string;
+} = {}): string {
+  const classes = cx(base, variants[variant], sizes[size], className);
+  // `:enabled` only matches form controls, so links get the hover/pressed states
+  // unconditionally (a link is never disabled).
+  return element === "link" ? classes.replaceAll("enabled:", "") : classes;
+}
+
 export function Button({
   variant = "primary",
   size = "default",
@@ -39,10 +61,6 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-    <button
-      type={type}
-      className={cx(base, variants[variant], sizes[size], className)}
-      {...props}
-    />
+    <button type={type} className={buttonClassName({ variant, size, className })} {...props} />
   );
 }

@@ -18,3 +18,13 @@ export function createDb(connectionString: string, options: { logger?: Logger } 
 }
 
 export type Database = ReturnType<typeof createDb>["db"];
+
+/** A transaction handle; nested `.transaction()` calls on it become savepoints. */
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+/**
+ * What application services and queries accept: the app client or an open
+ * transaction. Lets integration tests run services inside a rolled-back
+ * transaction without a separate code path.
+ */
+export type DbExecutor = Database | Transaction;
