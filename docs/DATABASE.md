@@ -650,14 +650,25 @@ active              BOOLEAN
 Examples:
 
 ```text
-JPY | Japanese Yen | ¥ | 0
-USD | US Dollar    | $ | 2
-EUR | Euro         | € | 2
+JPY | Yen       | NULL | 0
+USD | US Dollar | NULL | 2
+EUR | Euro      | NULL | 2
 ```
 
 Use ISO 4217 codes where applicable.
 
-The canonical dataset is a committed JSON snapshot of the ISO 4217 list (List One), with source URL and publication date recorded in the file (ROADMAP Decision Log D13). Codes without minor units (precious metals, testing codes) are excluded. `minor_units` comes from the ISO list, not from `Intl`.
+The canonical dataset is a committed JSON snapshot of the ISO 4217 list (List One), with source URL and publication date recorded in the file (ROADMAP Decision Log D13). `name` is the ISO currency name.
+
+Excluded from the dataset:
+
+- codes without minor units (precious metals, bond units, testing codes)
+- ISO fund codes (`IsFund="true"` in List One, e.g. USN, CLF), which are accounting units rather than currencies travelers spend
+
+`minor_units` comes from the ISO list, not from `Intl`.
+
+`symbol` is NULL: ISO 4217 defines no symbols. The UI derives a display symbol at render time with `Intl` (for example `Intl.NumberFormat` with `style: "currency"`); stored data never depends on it.
+
+Codes that leave the list are set `active = false`, never deleted, because trips and expenses reference them.
 
 ---
 

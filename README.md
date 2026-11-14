@@ -72,12 +72,27 @@ pnpm db:up        # docker compose up -d --wait postgres
 
 ```sh
 pnpm db:migrate   # apply committed migrations to DATABASE_URL
-pnpm db:seed      # upsert development reference data (safe to re-run)
+pnpm db:seed      # upsert ISO 4217 currency reference data (safe to re-run)
 ```
 
-> **Currency data is a development/test subset** (JPY, USD, EUR, KWD), clearly marked in
-> `src/db/seed/currencies.ts`. It is **not** the canonical ISO 4217 list, which must be added before
-> M1 Create Trip. `db:seed` refuses to run with `NODE_ENV=production`.
+`db:seed` refuses to run with `NODE_ENV=production`; production seeding is set up with deployment.
+
+### Currency reference data
+
+Currencies come from a committed snapshot of **ISO 4217 List One**,
+[`src/db/seed/iso-4217-list-one.json`](src/db/seed/iso-4217-list-one.json), which records its
+source URL and publication date (ROADMAP D13). Excluded: codes without minor units (precious
+metals, bond units, XDR, testing code XTS, XXX) and ISO fund codes (`IsFund="true"`, e.g. USN, CLF).
+ISO has no currency symbols, so `symbol` is NULL and the UI derives display symbols with `Intl`. The
+seed upserts every listed code; a code that disappears from a newer list (or a fund code seeded
+before D13 was amended) is set `active = false`, never deleted.
+
+To refresh the snapshot:
+
+1. Download List One XML from SIX (linked from SIX "Data standards"):
+   `https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml`
+2. `pnpm exec tsx src/db/seed/import-iso-4217.ts path/to/list-one.xml`
+3. Review the JSON diff, commit it, then run `pnpm db:seed`.
 
 ### Changing the schema
 

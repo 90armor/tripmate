@@ -1,15 +1,41 @@
-/**
- * ⚠️ DEVELOPMENT / TEST DATA ONLY — NOT the canonical ISO 4217 dataset.
+import { z } from "zod";
+import snapshot from "./iso-4217-list-one.json";
+
+/*
+ * Canonical currency reference data (ROADMAP D13, DATABASE §16): a committed
+ * snapshot of ISO 4217 List One. Source URL and publication date are recorded
+ * in the JSON file; regenerate it with ./import-iso-4217.ts, never by hand.
  *
- * CURRENT_TASK §20: an incomplete hand-written list must not be treated as
- * authoritative. This small subset exists only to exercise the seed mechanism and
- * cover each rounding class (0, 2 and 3 minor units). The canonical dataset,
- * sourced from the ISO 4217 maintenance agency with source and date recorded, is a
- * prerequisite for M1 Create Trip and will replace this file.
+ * ISO 4217 has no currency symbols, so `symbol` is null and the UI shows the
+ * code ("JPY — Yen"). minor_units comes from ISO, never from Intl.
  */
-export const DEV_TEST_CURRENCIES = [
-  { code: "JPY", name: "Japanese Yen", symbol: "¥", minorUnits: 0, active: true },
-  { code: "USD", name: "US Dollar", symbol: "$", minorUnits: 2, active: true },
-  { code: "EUR", name: "Euro", symbol: "€", minorUnits: 2, active: true },
-  { code: "KWD", name: "Kuwaiti Dinar", symbol: null, minorUnits: 3, active: true },
-] as const;
+
+const snapshotSchema = z.object({
+  source: z.url(),
+  publishedOn: z.iso.date(),
+  currencies: z
+    .array(
+      z.object({
+        code: z.string().regex(/^[A-Z]{3}$/),
+        name: z.string().min(1),
+        minorUnits: z.number().int().min(0).max(4),
+      }),
+    )
+    .min(100),
+});
+
+const parsed = snapshotSchema.parse(snapshot);
+
+export const ISO_4217_SOURCE = { url: parsed.source, publishedOn: parsed.publishedOn };
+
+export type CurrencySeed = {
+  readonly code: string;
+  readonly name: string;
+  readonly symbol: string | null;
+  readonly minorUnits: number;
+};
+
+export const ISO_4217_CURRENCIES: readonly CurrencySeed[] = parsed.currencies.map((c) => ({
+  ...c,
+  symbol: null,
+}));

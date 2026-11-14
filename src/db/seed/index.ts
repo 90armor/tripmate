@@ -1,22 +1,22 @@
 /**
- * Idempotent seed for local development: `pnpm db:seed`.
- * Upserts reference data by primary key, so it is safe to run repeatedly.
+ * Reference-data seed: `pnpm db:seed`. Idempotent; safe to run repeatedly.
  *
  * Tooling script (not application code): reads .env directly and only needs
  * DATABASE_URL, so it does not require auth configuration.
  */
 import { existsSync } from "node:fs";
-import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { createDb } from "../client";
-import { currencies } from "../schema";
-import { DEV_TEST_CURRENCIES } from "./currencies";
+import { ISO_4217_CURRENCIES, ISO_4217_SOURCE } from "./currencies";
+import { upsertCurrencies } from "./seed-currencies";
 
 async function main() {
   if (existsSync(".env")) process.loadEnvFile(".env");
 
+  // The data is canonical now, but production seeding stays a deliberate,
+  // controlled step (ARCHITECTURE §75) until the deployment milestone defines it.
   if (process.env.NODE_ENV === "production") {
-    throw new Error("Refusing to seed: this seed contains development/test data only.");
+    throw new Error("Refusing to seed with NODE_ENV=production; production seeding is not set up.");
   }
 
   const parsed = z.url().safeParse(process.env.DATABASE_URL);
@@ -26,19 +26,11 @@ async function main() {
 
   const { db, pool } = createDb(parsed.data);
   try {
-    await db
-      .insert(currencies)
-      .values([...DEV_TEST_CURRENCIES])
-      .onConflictDoUpdate({
-        target: currencies.code,
-        set: {
-          name: sql`excluded.name`,
-          symbol: sql`excluded.symbol`,
-          minorUnits: sql`excluded.minor_units`,
-          active: sql`excluded.active`,
-        },
-      });
-    console.log(`Seeded ${DEV_TEST_CURRENCIES.length} development currencies (upsert).`);
+    const result = await upsertCurrencies(db, ISO_4217_CURRENCIES);
+    console.log(
+      `Seeded ${result.upserted} ISO 4217 currencies (List One, published ${ISO_4217_SOURCE.publishedOn}).` +
+        (result.deactivated.length ? ` Deactivated: ${result.deactivated.join(", ")}.` : ""),
+    );
   } finally {
     await pool.end();
   }
