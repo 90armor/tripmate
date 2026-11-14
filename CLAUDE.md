@@ -38,6 +38,22 @@ Do not pick an answer and write it into the docs as if it were decided.
   (CURRENT_TASK "Completion Report") and **stop**. Do not start the next milestone.
 - After implementation, the `reviewer` subagent audits the change before the owner approves.
 
+## Git workflow
+
+- Never commit, merge, rebase or push on `main`. `main` changes only via a merged PR.
+- Work on the branch named in the `Branch:` line of `CURRENT_TASK.md`. If on `main`:
+  `git switch main && git pull --ff-only`, then `git switch -c <branch>`.
+- Branch names: `feat/<milestone>-<slug>` (e.g. `feat/m2-invitations`), `fix/<slug>`,
+  `chore/<slug>`, `docs/<slug>`. One milestone slice per branch.
+- Create the branch only after the owner approves your plan. Plan mode stays read-only.
+- Commit in small steps, only after `pnpm check` passes. Message format `type(scope): summary`.
+  A schema change and its migration go in the same commit.
+- When acceptance criteria are met: push the branch, open a PR, write the completion report, and
+  stop. Never merge. The owner squash-merges after the `reviewer` audit, green CI and a manual
+  phone test.
+- The completion report must list: branch name, commit list, validation output.
+- Never delete branches, never force push, never `git reset --hard` (already hook-blocked).
+
 ## Commands
 
 - `pnpm db:up` — start local PostgreSQL (Docker Compose) and wait until healthy

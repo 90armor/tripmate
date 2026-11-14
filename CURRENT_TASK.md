@@ -1,5 +1,8 @@
 # TripMate — Current Task
 
+Branch: feat/m1-first-trip
+Base: main
+
 ## M1 — First Trip
 
 **Status:** READY
