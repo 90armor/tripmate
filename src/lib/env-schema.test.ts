@@ -39,6 +39,16 @@ describe("parseServerEnv", () => {
     ]);
   });
 
+  it("treats DEV_ALLOWED_ORIGINS as optional and validates it only when present", () => {
+    expect(parseServerEnv(validEnv).DEV_ALLOWED_ORIGINS).toBeUndefined();
+    expect(parseServerEnv({ ...validEnv, DEV_ALLOWED_ORIGINS: "192.168.1.20" })).toMatchObject({
+      DEV_ALLOWED_ORIGINS: "192.168.1.20",
+    });
+    expect(problemsFor({ ...validEnv, DEV_ALLOWED_ORIGINS: "http://192.168.1.20:3000" })).toEqual([
+      "DEV_ALLOWED_ORIGINS: entry 1 must be a hostname such as 192.168.1.20 (no http://, port or path)",
+    ]);
+  });
+
   it("rejects a non-postgres database URL", () => {
     expect(problemsFor({ ...validEnv, DATABASE_URL: "mysql://u:p@localhost/tripmate" })).toEqual([
       "DATABASE_URL: must use the postgres:// or postgresql:// scheme",

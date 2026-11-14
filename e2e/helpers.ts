@@ -23,6 +23,28 @@ export const test = base.extend({
   },
 });
 
+/**
+ * Loads later pages without hydrating them: the client JS chunks are blocked,
+ * while the inline scripts that reveal streamed content still run. This is what
+ * a phone sees when the bundle fails to load, so forms must still work as plain
+ * HTML forms (progressive enhancement). Returns a check that the page really is
+ * unhydrated, so a test cannot pass by accident with React attached.
+ */
+export async function loadWithoutHydration(page: Page) {
+  await page.route(/\/_next\/static\/chunks\/.*\.js(\?.*)?$/, (route) => route.abort());
+  return async () => {
+    const hydrated = await page
+      .locator("main form")
+      .evaluate((form) => Object.keys(form).some((key) => key.startsWith("__react")));
+    expect(hydrated, "the form should not be hydrated").toBe(false);
+  };
+}
+
+/** Text of every inline field error in the page's main form. */
+export async function fieldErrors(page: Page): Promise<string[]> {
+  return page.getByRole("main").locator("form [id$='-error']").allInnerTexts();
+}
+
 export const TEST_PASSWORD = "e2e-password-123";
 
 export type TestAccount = { displayName: string; email: string; password: string };

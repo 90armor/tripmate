@@ -2,7 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   expectNoHorizontalScroll,
   expectTouchTargets,
+  fieldErrors,
   gotoPage,
+  loadWithoutHydration,
   newAccount,
   signIn,
   signOut,
@@ -89,6 +91,29 @@ test.describe("Create Trip (Slice 1.3)", () => {
     await expect(page.getByLabel("Base currency")).toHaveValue("JPY");
   });
 
+  test("keeps every value after a server round-trip without hydration", async ({ page }) => {
+    await signUp(page, newAccount());
+    const expectUnhydrated = await loadWithoutHydration(page);
+    await gotoPage(page, "/trips/new");
+    await expectUnhydrated();
+
+    await fillTrip(page, { ...TOKYO, tz: "" });
+    await page.getByRole("button", { name: "Create trip" }).click();
+
+    // A native POST: the server re-renders the form with its state.
+    await expect(page.getByLabel("Trip timezone")).toHaveAccessibleDescription(/Choose a timezone/);
+    await expectUnhydrated();
+    await expect(page).toHaveURL(/\/trips\/new$/);
+    await expect(page.getByRole("main").getByRole("alert")).toContainText("Check the highlighted");
+    expect(await fieldErrors(page)).toEqual(["Choose a timezone"]);
+    await expect(page.getByLabel("Trip name")).toHaveValue(TOKYO.name);
+    await expect(page.getByLabel("Destination")).toHaveValue(TOKYO.destination);
+    await expect(page.getByLabel("Start date")).toHaveValue(TOKYO.start);
+    await expect(page.getByLabel("End date")).toHaveValue(TOKYO.end);
+    await expect(page.getByLabel("Trip timezone")).toHaveValue("");
+    await expect(page.getByLabel("Base currency")).toHaveValue(TOKYO.ccy);
+  });
+
   test("rejects a timezone that is not in the list", async ({ page }) => {
     await signUp(page, newAccount());
     await gotoPage(page, "/trips/new");
@@ -103,6 +128,28 @@ test.describe("Create Trip (Slice 1.3)", () => {
     await gotoPage(page, "/trips/new");
     await expectNoHorizontalScroll(page);
     await expectTouchTargets(page);
+  });
+
+  test("no field is wider than its card, empty or filled", async ({ page }) => {
+    await signUp(page, newAccount());
+    await gotoPage(page, "/trips/new");
+    const form = page.getByRole("main").locator("form");
+
+    const overflowing = () =>
+      form.evaluate((element) => {
+        const card = element.parentElement!.getBoundingClientRect();
+        return [...element.querySelectorAll("input:not([type=hidden]), select")]
+          .filter((control) => {
+            const box = control.getBoundingClientRect();
+            return box.left < card.left - 0.5 || box.right > card.right + 0.5;
+          })
+          .map((control) => (control as HTMLInputElement).name);
+      });
+
+    expect(await overflowing()).toEqual([]);
+    // Date inputs are drawn differently once they hold a value.
+    await fillTrip(page, TOKYO);
+    expect(await overflowing()).toEqual([]);
   });
 
   test("requires sign-in", async ({ page }) => {

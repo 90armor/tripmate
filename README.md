@@ -52,6 +52,7 @@ Then edit `.env`:
 | `TEST_DATABASE_URL`  | integration tests only          | Must name a database ending in `_test`, different from `DATABASE_URL` |
 | `BETTER_AUTH_SECRET` | app (Better Auth)               | ≥ 32 characters                                             |
 | `BETTER_AUTH_URL`    | app (Better Auth)               | Base URL of the app, e.g. `http://localhost:3000`           |
+| `DEV_ALLOWED_ORIGINS` | `pnpm dev` only (optional)     | Comma-separated extra hostnames, e.g. your LAN IP — see [Test on a phone](#test-on-a-phone) |
 
 The server validates configuration at startup and **exits with a list of the missing or invalid
 variable names** (never their values) if anything is wrong.
@@ -133,7 +134,7 @@ pnpm dev          # http://localhost:3000
 | `pnpm test:unit`        | Vitest unit tests                                  | nothing                       |
 | `pnpm test:integration` | Vitest against real PostgreSQL (`tripmate_test`)   | PostgreSQL running (`db:up`)  |
 | `pnpm test`             | unit + integration                                 | PostgreSQL running            |
-| `pnpm test:e2e`         | Playwright smoke tests at 360px, 430px, 1280px     | `.env`; first time: `pnpm exec playwright install chromium` |
+| `pnpm test:e2e`         | Playwright at 360px, 430px, 1280px (Chromium) plus iPhone WebKit for Create Trip | `.env`; first time: `pnpm exec playwright install chromium webkit` |
 
 Integration tests:
 
@@ -144,7 +145,18 @@ Integration tests:
   `src/lib/auth/create-auth.int.test.ts` lets Better Auth write through its own connection,
   so those rows are committed; the test deletes the users it created in `afterEach`.
 
-`pnpm test:e2e` starts its own dev server on port 3100 (or reuses one already running there).
+`pnpm test:e2e` starts its own dev server on port 3100 against `tripmate_test`. Next.js allows one
+`next dev` per project folder, so stop any other `pnpm dev` first.
+
+### Test on a phone
+
+`pnpm dev` listens on your network, but Next.js only lets `localhost` use its dev reload socket.
+From a phone the page then never becomes interactive and **reloads itself after about 40 seconds,
+clearing the form**. To allow your computer's LAN address:
+
+1. Find it: `ipconfig getifaddr en0` (macOS).
+2. Add it to `.env`: `DEV_ALLOWED_ORIGINS=192.168.1.20` (hostname only — no `http://`, no port).
+3. Restart `pnpm dev`, then open `http://192.168.1.20:3000` on the phone (same Wi-Fi).
 
 ## Git hooks
 

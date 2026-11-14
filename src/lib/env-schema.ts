@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { devAllowedOriginsProblems } from "./dev-allowed-origins";
 
 /**
  * The BETTER_AUTH_SECRET value shipped in .env.example. Accepted for local
@@ -30,8 +31,15 @@ const serverEnvSchema = z
     DATABASE_URL: postgresUrl,
     BETTER_AUTH_SECRET: z.string().min(32, { message: "must be at least 32 characters" }),
     BETTER_AUTH_URL: z.url({ message: "must be a valid URL" }),
+    // Optional, development only: hostnames allowed to use `next dev` (phone testing).
+    DEV_ALLOWED_ORIGINS: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.DEV_ALLOWED_ORIGINS !== undefined) {
+      for (const message of devAllowedOriginsProblems(env.DEV_ALLOWED_ORIGINS)) {
+        ctx.addIssue({ code: "custom", path: ["DEV_ALLOWED_ORIGINS"], message });
+      }
+    }
     const isLocalDevelopment = env.NODE_ENV !== "production" && isLocalAuthUrl(env.BETTER_AUTH_URL);
     if (env.BETTER_AUTH_SECRET === EXAMPLE_AUTH_SECRET_PLACEHOLDER && !isLocalDevelopment) {
       ctx.addIssue({

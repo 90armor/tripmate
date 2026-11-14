@@ -44,6 +44,19 @@ export default defineConfig({
       name: "desktop",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
+    // Safari's engine on iPhone-sized screens, for the form-heavy flows. This is
+    // Playwright's desktop WebKit with iPhone emulation: close to iOS Safari, but
+    // it does not draw iOS's native date control, so check those on a real phone.
+    {
+      name: "iphone-small",
+      testMatch: "create-trip.spec.ts",
+      use: { ...devices["iPhone 13 Mini"], viewport: { width: 360, height: 640 } },
+    },
+    {
+      name: "iphone-large",
+      testMatch: "create-trip.spec.ts",
+      use: { ...devices["iPhone 15 Pro Max"], viewport: { width: 430, height: 739 } },
+    },
   ],
   webServer: {
     command: `pnpm dev --port ${PORT}`,
