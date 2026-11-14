@@ -8,6 +8,8 @@ import { z } from "zod";
 export type FormState<Field extends string> = {
   readonly fieldErrors?: Partial<Record<Field, string>>;
   readonly formError?: string;
+  /** Confirmation for a successful save that stays on the same page. */
+  readonly success?: string;
   readonly values?: Partial<Record<Field, string>>;
 };
 
