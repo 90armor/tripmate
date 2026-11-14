@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
-import { users } from "@/db/schema";
+import { account, session, users } from "@/db/schema";
 import { createTestDb } from "@/test/integration/test-database";
 import { createAuth } from "./create-auth";
 
 /*
- * Proves the M0 Better Auth configuration against real PostgreSQL without the
- * M1 session/account/verification tables: Better Auth's internal adapter writes
- * and reads TripMate's users table through the configured field mapping.
+ * Proves the Better Auth configuration against real PostgreSQL: the internal
+ * adapter writes and reads TripMate's users table through the field mapping, and
+ * email + password sign-up / sign-in / sessions work with the session, account and
+ * verification tables.
  *
  * Better Auth uses its own connection, so these rows cannot sit inside a
  * rolled-back transaction; each test deletes what it created.
@@ -76,5 +77,100 @@ describe("Better Auth foundation (better-auth users mapping)", () => {
 
     const found = await ctx.internalAdapter.findUserByEmail(email.toUpperCase());
     expect(found?.user.id).toBe(user.id);
+  });
+
+  describe("email + password (ROADMAP D14)", () => {
+    const PASSWORD = "correct-horse-battery";
+
+    async function signUp(email: string, name = "New Traveler") {
+      const result = await auth.api.signUpEmail({ body: { email, password: PASSWORD, name } });
+      createdUserIds.push(result.user.id);
+      return result;
+    }
+
+    it("signs up with a lowercase email, display name, and a stored password hash only", async () => {
+      const email = `Sign.Up.${randomUUID()}@Example.COM`;
+      const { user, token } = await signUp(email, "Phyo");
+
+      expect(user.email).toBe(email.toLowerCase());
+      expect(token).toBeTruthy();
+      const [row] = await db.select().from(users).where(eq(users.id, user.id));
+      expect(row).toMatchObject({ email: email.toLowerCase(), displayName: "Phyo" });
+      // users has no password column; the credential hash lives in account only.
+      expect(Object.keys(row!)).not.toContain("password");
+      const [credential] = await db.select().from(account).where(eq(account.userId, user.id));
+      expect(credential?.providerId).toBe("credential");
+      expect(credential?.password).toBeTruthy();
+      expect(credential?.password).not.toContain(PASSWORD);
+    });
+
+    it("rejects a duplicate email regardless of case", async () => {
+      const email = `dup.${randomUUID()}@example.com`;
+      await signUp(email);
+      await expect(
+        auth.api.signUpEmail({
+          body: { email: email.toUpperCase(), password: PASSWORD, name: "Second" },
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("rejects passwords shorter than 8 characters", async () => {
+      await expect(
+        auth.api.signUpEmail({
+          body: { email: `short.${randomUUID()}@example.com`, password: "1234567", name: "Short" },
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("signs in, resolves the session from request headers, and signs out", async () => {
+      const email = `flow.${randomUUID()}@example.com`;
+      const { user } = await signUp(email);
+
+      const signedIn = await auth.api.signInEmail({
+        body: { email: email.toUpperCase(), password: PASSWORD },
+        returnHeaders: true,
+      });
+      const cookie = signedIn.headers
+        .getSetCookie()
+        .map((c) => c.split(";")[0])
+        .join("; ");
+      expect(cookie).toContain("session_token");
+
+      const headers = new Headers({ cookie });
+      const current = await auth.api.getSession({ headers });
+      expect(current?.user.id).toBe(user.id);
+
+      await auth.api.signOut({ headers });
+      expect(await auth.api.getSession({ headers })).toBeNull();
+      const remaining = await db.select().from(session).where(eq(session.userId, user.id));
+      // Sign-up auto-signed in once; only the sign-in session was removed.
+      expect(remaining).toHaveLength(1);
+    });
+
+    it("rejects a wrong password", async () => {
+      const email = `wrong.${randomUUID()}@example.com`;
+      await signUp(email);
+      await expect(
+        auth.api.signInEmail({ body: { email, password: "not-the-password" } }),
+      ).rejects.toThrow();
+    });
+
+    it("updates the display name through the users mapping", async () => {
+      const email = `rename.${randomUUID()}@example.com`;
+      const { user } = await signUp(email, "Before");
+      const signedIn = await auth.api.signInEmail({
+        body: { email, password: PASSWORD },
+        returnHeaders: true,
+      });
+      const cookie = signedIn.headers
+        .getSetCookie()
+        .map((c) => c.split(";")[0])
+        .join("; ");
+
+      await auth.api.updateUser({ headers: new Headers({ cookie }), body: { name: "After" } });
+
+      const [row] = await db.select().from(users).where(eq(users.id, user.id));
+      expect(row?.displayName).toBe("After");
+    });
   });
 });

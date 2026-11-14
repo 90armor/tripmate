@@ -15,6 +15,13 @@
       "when": 1794389374150,
       "tag": "0001_trip_members_updated_at_clock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794625736244,
+      "tag": "0002_better_auth_tables",
+      "breakpoints": true
     }
   ]
 }
