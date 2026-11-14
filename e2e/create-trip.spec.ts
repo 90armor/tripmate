@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  daysFromToday,
   expectNoHorizontalScroll,
   expectTouchTargets,
   fieldErrors,
@@ -10,13 +11,6 @@ import {
   signOut,
   signUp,
 } from "./helpers";
-
-/** YYYY-MM-DD, `days` from today (UTC). Far enough ahead to be PLANNING in every timezone. */
-function daysFromToday(days: number): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 async function fillTrip(
   page: Page,

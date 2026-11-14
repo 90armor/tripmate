@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import {
+  createTrip,
   expectNoHorizontalScroll,
   expectTouchTargets,
   newAccount,
@@ -7,26 +8,6 @@ import {
   signUp,
   test,
 } from "./helpers";
-
-function daysFromToday(days: number): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-/** Signs up a new user, creates a trip through the UI, and returns its URL. */
-async function createTrip(page: Page, name = "Tokyo Autumn Trip"): Promise<string> {
-  await page.goto("/trips/new");
-  await page.getByLabel("Trip name").fill(name);
-  await page.getByLabel("Destination").fill("Tokyo, Japan");
-  await page.getByLabel("Start date").fill(daysFromToday(60));
-  await page.getByLabel("End date").fill(daysFromToday(66));
-  await page.getByLabel("Trip timezone").fill("Asia/Tokyo");
-  await page.getByLabel("Base currency").selectOption("JPY");
-  await page.getByRole("button", { name: "Create trip" }).click();
-  await expect(page).toHaveURL(/\/trips\/[0-9a-f-]{36}$/);
-  return new URL(page.url()).pathname;
-}
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 0) < 1024;
 
@@ -81,12 +62,13 @@ test.describe("Trip Workspace (Slice 1.4)", () => {
       await expectNoHorizontalScroll(page);
     }
 
-    // Trip-section pages reachable from the Overview on every screen size.
-    for (const [label, heading] of [
-      ["Members", "Members"],
-      ["Bookings", "Bookings"],
-      ["Checklist", "Checklist"],
-      ["Trip settings", "Trip settings"],
+    // Trip-section pages reachable from the Overview on every screen size. Only
+    // Settings is built in M1; the rest are intentional empty states.
+    for (const [label, heading, built] of [
+      ["Members", "Members", false],
+      ["Bookings", "Bookings", false],
+      ["Checklist", "Checklist", false],
+      ["Trip settings", "Trip settings", true],
     ] as const) {
       await page.goto(base);
       await page
@@ -94,7 +76,7 @@ test.describe("Trip Workspace (Slice 1.4)", () => {
         .getByRole("link", { name: label })
         .click();
       await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
-      await expect(page.getByText("Coming soon")).toBeVisible();
+      await expect(page.getByText("Coming soon")).toHaveCount(built ? 0 : 1);
     }
   });
 

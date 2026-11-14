@@ -7,8 +7,10 @@ This README is operational: how to run, test, and build. Product and technical d
 [`docs/`](docs/), agent rules in [`AGENT_RULES.md`](AGENT_RULES.md), and the active scope in
 [`CURRENT_TASK.md`](CURRENT_TASK.md).
 
-**Current state:** M0 — Foundation. The app renders a foundation preview page; no product features
-exist yet.
+**Current state:** M1 — First Trip. Sign up / sign in / sign out (email + password), profile
+(display name), My Trips, Create Trip, the Trip Workspace (Overview plus intentional empty states for
+sections not built yet), and Trip Settings with archive / unarchive. Trips are single-member until
+invitations arrive in M2.
 
 ## Stack
 
@@ -123,6 +125,11 @@ This deletes all local development and test data.
 pnpm dev          # http://localhost:3000
 ```
 
+Open it and **create an account** on the Sign Up page — there are no built-in users. Accounts are
+email + password ([Better Auth](https://www.better-auth.com/), sessions in PostgreSQL); there is no
+email verification yet, so any address works locally. Run `pnpm db:seed` first, or Create Trip has no
+currencies to offer. To try it on a phone, see [Test on a phone](#test-on-a-phone).
+
 ## Tests and quality checks
 
 | Command                 | What it runs                                       | Needs                         |
@@ -145,8 +152,10 @@ Integration tests:
   `src/lib/auth/create-auth.int.test.ts` lets Better Auth write through its own connection,
   so those rows are committed; the test deletes the users it created in `afterEach`.
 
-`pnpm test:e2e` starts its own dev server on port 3100 against `tripmate_test`. Next.js allows one
-`next dev` per project folder, so stop any other `pnpm dev` first.
+`pnpm test:e2e` starts its own dev server on port 3100 against `tripmate_test` (never the
+development database), first applying migrations and seeding currencies there. Each test signs up its
+own random account. Next.js allows one `next dev` per project folder, so stop any other `pnpm dev`
+first.
 
 ### Test on a phone
 
@@ -189,20 +198,22 @@ pnpm start        # serves the production build; requires a real BETTER_AUTH_SEC
 - **integration:** the integration suite against a fresh PostgreSQL 18 service container, which also
   proves the migrations apply to an empty database
 
-Playwright smoke tests are not in CI yet; they are the next CI extension.
+Playwright tests are not in CI yet; they are the next CI extension.
 
 ## Project structure
 
 ```text
 src/
 ├── app/              Next.js routes, layout, global styles and design tokens
-├── components/ui/    Shared UI primitives (Button, IconButton, Input, Textarea, Label, Card)
+├── components/       Shared UI primitives (ui/) and app chrome (shared/)
 ├── db/               Drizzle client, schema, migrations, seed
-├── lib/              Validated env config, Better Auth setup, small utilities
+├── domain/           Pure business rules (trip status, dates) — no React, Next.js or database
+├── lib/              Validated env config, Better Auth setup, errors, small utilities
+├── modules/          Feature modules: schemas, services, queries, actions, components
+│                     (auth, users, trips — incl. the trip access guard — currencies)
 └── test/integration/ Integration test harness and test-database guard
-e2e/                  Playwright smoke tests
+e2e/                  Playwright end-to-end tests
 docker/               PostgreSQL init scripts
 ```
 
-Further directories (`src/modules`, `src/domain`, `src/integrations`) are added when the first
-code that belongs in them exists.
+`src/integrations` is added when the first external integration exists.

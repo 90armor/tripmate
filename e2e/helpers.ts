@@ -35,6 +35,7 @@ export async function loadWithoutHydration(page: Page) {
   return async () => {
     const hydrated = await page
       .locator("main form")
+      .first()
       .evaluate((form) => Object.keys(form).some((key) => key.startsWith("__react")));
     expect(hydrated, "the form should not be hydrated").toBe(false);
   };
@@ -43,6 +44,27 @@ export async function loadWithoutHydration(page: Page) {
 /** Text of every inline field error in the page's main form. */
 export async function fieldErrors(page: Page): Promise<string[]> {
   return page.getByRole("main").locator("form [id$='-error']").allInnerTexts();
+}
+
+/** YYYY-MM-DD, `days` from today (UTC). 60+ days ahead is PLANNING in every timezone. */
+export function daysFromToday(days: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** Creates a trip through the UI as the signed-in user and returns its path. */
+export async function createTrip(page: Page, name = "Tokyo Autumn Trip"): Promise<string> {
+  await page.goto("/trips/new");
+  await page.getByLabel("Trip name").fill(name);
+  await page.getByLabel("Destination").fill("Tokyo, Japan");
+  await page.getByLabel("Start date").fill(daysFromToday(60));
+  await page.getByLabel("End date").fill(daysFromToday(66));
+  await page.getByLabel("Trip timezone").fill("Asia/Tokyo");
+  await page.getByLabel("Base currency").selectOption("JPY");
+  await page.getByRole("button", { name: "Create trip" }).click();
+  await expect(page).toHaveURL(/\/trips\/[0-9a-f-]{36}$/);
+  return new URL(page.url()).pathname;
 }
 
 export const TEST_PASSWORD = "e2e-password-123";
@@ -92,11 +114,15 @@ export async function expectNoHorizontalScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-/** Every button and link in <main> meets the 44×44 px minimum (DESIGN_SYSTEM §22). */
+/**
+ * Every visible button, link and control in <main> meets the 44×44 px minimum
+ * (DESIGN_SYSTEM §22). Closed dialogs and collapsed sections are skipped.
+ */
 export async function expectTouchTargets(page: Page) {
   const targets = await page
     .getByRole("main")
     .locator("button, a[href], input:not([type=hidden]), select")
+    .filter({ visible: true })
     .all();
   expect(targets.length).toBeGreaterThan(0);
   for (const target of targets) {
