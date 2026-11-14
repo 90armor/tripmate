@@ -7,7 +7,8 @@
  */
 export async function validateConfigurationOrExit(): Promise<void> {
   try {
-    await import("@/lib/env");
+    const { getEnv } = await import("@/lib/env");
+    getEnv();
   } catch (error) {
     // Compare by name: the error class may come from a separately bundled module instance.
     if (error instanceof Error && error.name === "EnvValidationError") {
