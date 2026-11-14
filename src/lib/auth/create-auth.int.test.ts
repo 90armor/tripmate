@@ -233,16 +233,21 @@ describe("every write path validates profile fields (ROADMAP D18)", () => {
     expect(paths).toContain("/sign-in/email");
     expect(paths.length).toBeGreaterThan(20);
 
-    for (const path of paths) {
-      expect((await http(path, { body: {} })).status, path).toBe(404);
-    }
-    for (const path of [
+    // GET as well as POST: for GET-only endpoints (/ok, /list-sessions,
+    // /reset-password/:token…) a POST-only probe would get 404 from the router
+    // even without the allow-list. /ok answers 200 when allowed
+    // (http-allow-list.test.ts), so its 404 here comes from the allow-list.
+    expect(paths).toContain("/ok");
+    const probes = [
+      ...paths,
       "/sign-up/email/",
       "/Sign-In/Email",
       "/update%2Duser",
       "/callback/google",
-    ]) {
-      expect((await http(path, { body: {} })).status, path).toBe(404);
+    ];
+    for (const path of probes) {
+      expect((await http(path, { method: "GET" })).status, `GET ${path}`).toBe(404);
+      expect((await http(path, { body: {} })).status, `POST ${path}`).toBe(404);
     }
   });
 
