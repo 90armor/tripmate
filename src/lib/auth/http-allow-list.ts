@@ -20,10 +20,22 @@ import type { BetterAuthPlugin } from "better-auth";
  */
 export const HTTP_ENABLED_AUTH_PATHS: ReadonlySet<string> = new Set<string>();
 
-const DEFAULT_BASE_PATH = "/api/auth";
+/**
+ * Better Auth's router base path: the path of the resolved baseURL, exactly as
+ * the router computes it (`new URL(ctx.baseURL).pathname`). Better Auth keeps a
+ * path already present in BETTER_AUTH_URL and only appends /api/auth when there
+ * is none, so options.basePath alone can disagree with the router.
+ */
+export function routerBasePath(baseURL: string): string | null {
+  try {
+    return new URL(baseURL).pathname;
+  } catch {
+    return null;
+  }
+}
 
-/** Path below the auth base path, normalised like Better Auth's router. */
-export function authRelativePath(requestUrl: string, basePath = DEFAULT_BASE_PATH): string {
+/** Path below the router base path, normalised like Better Auth's router. */
+export function authRelativePath(requestUrl: string, basePath: string): string {
   let pathname: string;
   try {
     pathname = new URL(requestUrl).pathname.replace(/\/+$/, "") || "/";
@@ -36,12 +48,19 @@ export function authRelativePath(requestUrl: string, basePath = DEFAULT_BASE_PAT
   return pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : pathname;
 }
 
-export function httpAllowList(): BetterAuthPlugin {
+/**
+ * Better Auth plugin that answers 404 for every HTTP request whose path is not
+ * in `allowed` (default: HTTP_ENABLED_AUTH_PATHS, which is empty). Fails closed
+ * when the base path cannot be determined.
+ */
+export function httpAllowList(
+  allowed: ReadonlySet<string> = HTTP_ENABLED_AUTH_PATHS,
+): BetterAuthPlugin {
   return {
     id: "tripmate-http-allow-list",
     async onRequest(request, ctx) {
-      const path = authRelativePath(request.url, ctx.options.basePath ?? DEFAULT_BASE_PATH);
-      if (!HTTP_ENABLED_AUTH_PATHS.has(path)) {
+      const basePath = routerBasePath(ctx.baseURL);
+      if (basePath === null || !allowed.has(authRelativePath(request.url, basePath))) {
         return { response: new Response("Not Found", { status: 404 }) };
       }
     },
