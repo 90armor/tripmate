@@ -1,5 +1,27 @@
 import { randomUUID } from "node:crypto";
-import { expect, type Page } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
+
+/**
+ * `test` with the Next.js Dev Tools button hidden. `next dev` floats it in the
+ * bottom-left corner, where it covers the mobile bottom navigation and blocks
+ * clicks; production builds do not render it. Test-only, so the owner's own dev
+ * server keeps its dev tools.
+ */
+export const test = base.extend({
+  // The fixture callback is positional; not named `use`, which the React hooks lint rule claims.
+  page: async ({ page }, provide) => {
+    await page.addInitScript(() => {
+      const hide = () => {
+        const style = document.createElement("style");
+        style.textContent = "nextjs-portal { display: none !important; }";
+        document.head.append(style);
+      };
+      if (document.head) hide();
+      else document.addEventListener("DOMContentLoaded", hide);
+    });
+    await provide(page);
+  },
+});
 
 export const TEST_PASSWORD = "e2e-password-123";
 
