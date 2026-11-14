@@ -22,6 +22,7 @@ Vitest · Playwright · pnpm · Docker Compose (PostgreSQL only).
 | Node.js                | 24 LTS (see `.nvmrc`)                        |
 | pnpm                   | 11 (pinned in `package.json` → `packageManager`; `corepack enable` picks it up) |
 | Docker + Docker Compose | Any recent version                          |
+| jq                     | Any recent version. Required by the Claude Code hooks in `.claude/hooks/` (e.g. `block-main.sh`); without it they block Bash/Edit/Write by design |
 
 Next.js runs directly on your machine; only PostgreSQL runs in Docker.
 
@@ -155,7 +156,7 @@ pnpm start        # serves the production build; requires a real BETTER_AUTH_SEC
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` (GitHub Actions) runs on pushes to `main` and on pull requests:
+`.github/workflows/ci.yml` (GitHub Actions) runs on pull requests and on merges to `main`:
 
 - **quality:** install → lint → format check → typecheck → unit tests → build
 - **integration:** the integration suite against a fresh PostgreSQL 18 service container, which also
