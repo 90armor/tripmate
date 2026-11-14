@@ -10,13 +10,14 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { TRIP_STATUSES } from "../../domain/trips/status";
 import { inList, timestamps } from "./columns";
 import { currencies } from "./currencies";
 import { users } from "./users";
 
-/** Canonical lifecycle statuses (AGENT_RULES §19). Archiving is `archived_at`, not a status. */
-export const TRIP_STATUSES = ["PLANNING", "UPCOMING", "TRAVELING", "COMPLETED"] as const;
-export type TripStatus = (typeof TRIP_STATUSES)[number];
+// Lifecycle statuses are owned by the domain; the schema reuses them for the CHECK.
+// Relative import: drizzle-kit loads this file without the "@/" path alias.
+export { TRIP_STATUSES, type TripStatus } from "../../domain/trips/status";
 
 /**
  * Trips (DATABASE §11). Status is derived from dates in the trip timezone;
