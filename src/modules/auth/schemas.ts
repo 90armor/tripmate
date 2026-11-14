@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { displayNameSchema } from "@/lib/auth/display-name";
 
 /*
  * Sign-up / sign-in input (CURRENT_TASK §4.1, ROADMAP D14). Shared by the forms
@@ -18,11 +19,8 @@ export const emailSchema = z
   .min(1, { error: "Enter your email" })
   .pipe(z.email({ error: "Enter a valid email address" }));
 
-export const displayNameSchema = z
-  .string({ error: "Enter your name" })
-  .trim()
-  .min(1, { error: "Enter your name" })
-  .max(100, { error: "Use 100 characters or fewer" });
+// Shared with the Better Auth user hooks, so it lives with the auth config.
+export { displayNameSchema };
 
 export const signUpSchema = z.object({
   displayName: displayNameSchema,

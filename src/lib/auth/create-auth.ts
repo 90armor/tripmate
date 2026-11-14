@@ -2,6 +2,8 @@ import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Database } from "@/db/client";
 import { account, session, users, verification } from "@/db/schema";
+import { httpAllowList } from "./http-allow-list";
+import { guardUserWrite } from "./user-write-guard";
 
 /**
  * Better Auth configuration (ROADMAP D1, ARCHITECTURE §25-26).
@@ -25,7 +27,16 @@ export function createAuth(config: {
   return betterAuth({
     secret: config.secret,
     baseURL: config.baseURL,
-    plugins: config.plugins,
+    // Only the M1 email/password and session endpoints are reachable over HTTP.
+    plugins: [httpAllowList(), ...(config.plugins ?? [])],
+    // Every write of the users row, from any endpoint or auth.api call, gets the
+    // display-name rule and drops the avatar (ROADMAP D18).
+    databaseHooks: {
+      user: {
+        create: { before: async (user) => ({ data: guardUserWrite(user) }) },
+        update: { before: async (user) => ({ data: guardUserWrite(user) }) },
+      },
+    },
     database: drizzleAdapter(config.db, {
       provider: "pg",
       schema: { user: users, session, account, verification },
