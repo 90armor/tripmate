@@ -15,16 +15,17 @@ const requiredText = (required: string, max: number) =>
   z
     .string({ error: required })
     .trim()
-    .min(1, { error: required, abort: true })
+    .min(1, { error: required })
     .max(max, { error: `Use ${max} characters or fewer` });
 
 const calendarDate = (required: string) =>
   z
     .string({ error: required })
     .trim()
-    // abort: an empty field reports only "required", not also "real date".
-    .min(1, { error: required, abort: true })
-    .refine(isValidDateString, { error: "Enter a real date" });
+    .min(1, { error: required })
+    // Empty is reported once, by min(1). (Not `abort`: an aborting issue also
+    // stops the object-level date-order check below.)
+    .refine((value) => value === "" || isValidDateString(value), { error: "Enter a real date" });
 
 export const tripDetailsSchema = z
   .object({
@@ -36,8 +37,10 @@ export const tripDetailsSchema = z
     timezone: z
       .string({ error: "Choose a timezone" })
       .trim()
-      .min(1, { error: "Choose a timezone", abort: true })
-      .refine(isSupportedTimeZone, { error: "Choose a timezone from the list" }),
+      .min(1, { error: "Choose a timezone" })
+      .refine((value) => value === "" || isSupportedTimeZone(value), {
+        error: "Choose a timezone from the list",
+      }),
     baseCurrency: z
       .string({ error: "Choose a currency" })
       .trim()
@@ -49,6 +52,13 @@ export const tripDetailsSchema = z
   .refine((trip) => trip.endDate >= trip.startDate, {
     path: ["endDate"],
     error: "End date can’t be before the start date",
+    // Object refinements are skipped when any field has an issue. Run this one
+    // whenever both dates are valid, so a missing timezone does not hide a
+    // reversed date range (all errors show on the first submit).
+    when: (payload) =>
+      !payload.issues.some(
+        (issue) => issue.path?.[0] === "startDate" || issue.path?.[0] === "endDate",
+      ),
   });
 
 export type TripDetailsInput = z.infer<typeof tripDetailsSchema>;

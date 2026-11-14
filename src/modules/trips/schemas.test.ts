@@ -51,6 +51,21 @@ describe("tripDetailsSchema (Create Trip / Trip Settings)", () => {
     });
   });
 
+  it("reports a reversed date range together with other field errors", () => {
+    expect(
+      fieldErrors({ ...valid, timezone: "", startDate: "2026-11-21", endDate: "2026-11-15" }),
+    ).toEqual({
+      timezone: "Choose a timezone",
+      endDate: "End date can’t be before the start date",
+    });
+  });
+
+  it("does not compare dates when one of them is invalid", () => {
+    expect(fieldErrors({ ...valid, startDate: "2026-02-30", endDate: "2026-01-01" })).toEqual({
+      startDate: "Enter a real date",
+    });
+  });
+
   it("accepts a one-day trip and a trip already in progress or in the past", () => {
     expect(fieldErrors({ ...valid, startDate: "2026-11-15", endDate: "2026-11-15" })).toEqual({});
     expect(fieldErrors({ ...valid, startDate: "2020-01-01", endDate: "2030-01-01" })).toEqual({});
