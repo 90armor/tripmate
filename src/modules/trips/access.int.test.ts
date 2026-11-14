@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import type { Transaction } from "@/db/client";
-import { AuthorizationError, NotFoundError } from "@/lib/errors";
+import { AuthorizationError, NotFoundError, TripArchivedError } from "@/lib/errors";
 import { insertMember, insertTrip, insertUser } from "@/test/integration/fixtures";
 import { createTestDb, withRollback } from "@/test/integration/test-database";
 import { requireActiveTripMember, requireTripOwner } from "./access";
@@ -147,6 +147,47 @@ describe("requireTripOwner", () => {
       const formerOwner = await insertUser(tx, "Former owner");
       await insertMember(tx, trip.id, { userId: formerOwner.id, role: "OWNER", status: "LEFT" });
       await expectNotFound(requireTripOwner(tx, formerOwner, trip.id));
+    });
+  });
+});
+
+describe("forWrite: archived trips are read-only (ROADMAP D22)", () => {
+  it("allows reads but rejects writes on an archived trip, for every role", async () => {
+    await withRollback(db, async (tx) => {
+      const owner = await insertUser(tx, "Owner");
+      const trip = await insertTrip(tx, owner.id, { archivedAt: new Date() });
+      const member = await insertUser(tx, "Member");
+      await insertMember(tx, trip.id, { userId: member.id, role: "MEMBER" });
+
+      await expect(requireActiveTripMember(tx, member, trip.id)).resolves.toBeDefined();
+      for (const user of [owner, member]) {
+        const error = await errorOf(requireActiveTripMember(tx, user, trip.id, { forWrite: true }));
+        expect(error).toBeInstanceOf(TripArchivedError);
+        expect((error as Error).message).toBe(
+          "This trip is archived. Unarchive it to make changes.",
+        );
+      }
+      expect(
+        await errorOf(requireTripOwner(tx, owner, trip.id, { forWrite: true })),
+      ).toBeInstanceOf(TripArchivedError);
+      // Role is checked first: a MEMBER asking for owner write access is told
+      // they lack permission, not that the trip is archived.
+      expect(
+        await errorOf(requireTripOwner(tx, member, trip.id, { forWrite: true })),
+      ).toBeInstanceOf(AuthorizationError);
+    });
+  });
+
+  it("allows writes on an active trip and still hides other users' trips", async () => {
+    await withRollback(db, async (tx) => {
+      const owner = await insertUser(tx);
+      const trip = await insertTrip(tx, owner.id);
+      await expect(requireTripOwner(tx, owner, trip.id, { forWrite: true })).resolves.toBeDefined();
+
+      const archived = await insertTrip(tx, owner.id, { archivedAt: new Date() });
+      const stranger = await insertUser(tx);
+      // A non-member gets NotFound, never "archived": that would reveal the trip.
+      await expectNotFound(requireActiveTripMember(tx, stranger, archived.id, { forWrite: true }));
     });
   });
 });

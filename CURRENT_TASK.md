@@ -69,6 +69,7 @@ Owner-approved on 2026-11-11 (ROADMAP Decision Log):
 | D17 | Full workspace navigation shown; unbuilt destinations show an intentional empty state. |
 | D18 | Profile: display name editable, email read-only, no avatar. |
 | D19 | No default checklist at trip creation (checklist arrives in M4). |
+| D22 | Archived trips are read-only: viewable by members; every write rejected except OWNER unarchive; enforced in the access guard (`{ forWrite: true }`), not UI. (Added 2026-11-14.) |
 
 Earlier decisions still apply, especially D1 (Better Auth), D7 (derived status + override), D9 (one `trip_members` row per INSERT), D10 (lowercase emails).
 
@@ -179,6 +180,7 @@ Archive / Unarchive
 ```
 
 - OWNER only, enforced on the server.
+- Archived trips are read-only (D22): settings changes are rejected until the OWNER unarchives.
 - Same validation as Create Trip.
 - Changing dates is allowed (no itinerary exists yet).
 - Changing base currency is allowed in M1 (no expenses exist yet). Leave a clear code comment/TODO that M5 must restrict this once expenses exist.

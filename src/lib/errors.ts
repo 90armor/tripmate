@@ -48,3 +48,14 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {}
+
+/**
+ * A write to an archived trip (ROADMAP D22). Archived trips are read-only; only
+ * the OWNER's unarchive is allowed. Not NotFoundError: the member can see the
+ * trip, so the message explains what to do.
+ */
+export class TripArchivedError extends ConflictError {
+  constructor(message = "This trip is archived. Unarchive it to make changes.") {
+    super(message);
+  }
+}

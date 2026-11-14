@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tripDetailsSchema } from "./schemas";
+import { tripDetailsSchema, tripSettingsSchema } from "./schemas";
 
 const valid = {
   name: "Tokyo Autumn Trip",
@@ -95,5 +95,30 @@ describe("tripDetailsSchema (Create Trip / Trip Settings)", () => {
     expect(fieldErrors({ ...valid, baseCurrency: "YEN!" })).toEqual({
       baseCurrency: "Choose a currency",
     });
+  });
+});
+
+describe("tripSettingsSchema (Trip Settings)", () => {
+  it("applies the same rules as Create Trip", () => {
+    const result = tripSettingsSchema.safeParse({ ...valid, endDate: "2026-11-01", timezone: "" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((i) => i.path.join(".")).sort()).toEqual([
+      "endDate",
+      "timezone",
+    ]);
+  });
+
+  it('maps the status override: "" clears it, a status sets it, omitted leaves it', () => {
+    expect(tripSettingsSchema.parse({ ...valid, statusOverride: "" }).statusOverride).toBeNull();
+    expect(tripSettingsSchema.parse({ ...valid, statusOverride: "TRAVELING" }).statusOverride).toBe(
+      "TRAVELING",
+    );
+    expect(tripSettingsSchema.parse(valid).statusOverride).toBeUndefined();
+  });
+
+  it("rejects an unknown status, including the non-status ARCHIVED", () => {
+    for (const statusOverride of ["ARCHIVED", "planning", "DONE"]) {
+      expect(tripSettingsSchema.safeParse({ ...valid, statusOverride }).success).toBe(false);
+    }
   });
 });

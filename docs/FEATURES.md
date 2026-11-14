@@ -179,6 +179,8 @@ Permanent deletion may be restricted or deferred.
 
 Archived trips appear in a collapsed "Archived" section of My Trips. The OWNER can archive and unarchive a trip (ROADMAP D16).
 
+Archived trips are read-only: members can still open them, but every change is rejected except the OWNER's unarchive (ROADMAP D22).
+
 ## Business Rules
 
 ```text
