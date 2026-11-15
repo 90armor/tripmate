@@ -15,7 +15,7 @@ invitations arrive in M2.
 ## Stack
 
 Next.js (App Router) · TypeScript · Tailwind CSS · PostgreSQL · Drizzle ORM · Zod · Better Auth ·
-Vitest · Playwright · pnpm · Docker Compose (PostgreSQL only).
+Vitest · Playwright · pnpm · Docker Compose (PostgreSQL; optionally the whole dev stack).
 
 ## Prerequisites
 
@@ -26,7 +26,9 @@ Vitest · Playwright · pnpm · Docker Compose (PostgreSQL only).
 | Docker + Docker Compose | Any recent version                          |
 | jq                     | Any recent version. Required by the Claude Code hooks in `.claude/hooks/` (e.g. `block-main.sh`); without it they block Bash/Edit/Write by design |
 
-Next.js runs directly on your machine; only PostgreSQL runs in Docker.
+By default Next.js runs directly on your machine and only PostgreSQL runs in Docker. To run the
+whole development stack in Docker instead (only Docker needed), see
+[Run everything in Docker](#run-everything-in-docker-optional).
 
 ## Setup
 
@@ -130,6 +132,73 @@ email + password ([Better Auth](https://www.better-auth.com/), sessions in Postg
 email verification yet, so any address works locally. Run `pnpm db:seed` first, or Create Trip has no
 currencies to offer. To try it on a phone, see [Test on a phone](#test-on-a-phone).
 
+## Run everything in Docker (optional)
+
+An alternative to the host setup above: PostgreSQL, migrations + seed and the Next.js dev server all
+run in Docker Compose. Nothing but Docker is needed — no Node.js, pnpm or `.env` on your machine.
+Decision: ROADMAP D23.
+
+```sh
+pnpm docker:dev
+# without pnpm on the host, run the same command directly:
+docker compose up --build --renew-anon-volumes migrate app
+```
+
+It starts, in order:
+
+1. **`postgres`** — the same container and data volume as `pnpm db:up`. If it is already running it
+   is left alone.
+2. **`migrate`** — one-shot `pnpm db:migrate && pnpm db:seed`, then exits. The app starts only if it
+   succeeds.
+3. **`app`** — `next dev` on <http://localhost:3000>, with your working tree bind-mounted so edits
+   hot-reload (about 1–2 s).
+
+Stop with Ctrl+C or `docker compose stop`. Data stays in the volume `tripmate_tripmate-pgdata`.
+
+> **This is a local development image, not a production image.** It contains every
+> devDependency, runs `next dev`, and uses a public placeholder secret. No hosting or production
+> image decision has been made (ARCHITECTURE §87).
+
+### Configuration in the container
+
+- **No `.env` needed.** `docker-compose.yml` sets `DATABASE_URL` (the in-network address
+  `postgres:5432`), `BETTER_AUTH_URL=http://localhost:3000`, and the `.env.example` placeholder
+  `BETTER_AUTH_SECRET`. The placeholder is accepted only because the container runs in development
+  with a localhost `BETTER_AUTH_URL`.
+- **Values set by compose win over `.env`.** If you have a `.env`, its `BETTER_AUTH_URL`,
+  `BETTER_AUTH_SECRET` and `DATABASE_URL` are ignored in the container. Variables compose does not
+  set, such as `DEV_ALLOWED_ORIGINS`, are still read from `.env` through the bind mount.
+- `.env` files are never copied into the image (`.dockerignore`).
+
+### Things to know
+
+- **Use `pnpm docker:dev`, not a bare `docker compose up`.** A bare `up` skips `--build` and
+  `--renew-anon-volumes`: after a dependency change the container keeps its old image and its old
+  `node_modules` volume, and fails or behaves differently from the lockfile.
+- **Cold compile on every start.** `--renew-anon-volumes` also gives the container an empty `.next`,
+  so the first request to each page compiles from scratch (a few seconds).
+- **Port 3000 is open on your network, with a public secret.** Like host `pnpm dev`, the app listens
+  on all interfaces (so a phone can reach it), and its sessions are signed with the public
+  placeholder secret. Anyone on the same network can open it. Use trusted networks only and never
+  real data.
+- **Host `pnpm dev` and the container both use port 3000** — run one at a time
+  (`docker compose stop app`). They use the **same database** (`tripmate`), so accounts and trips
+  are shared. They also share `localhost` cookies; switching between them signs you out only when
+  the secrets differ (a host `.env` that still uses the `.env.example` placeholder has the same
+  secret, so you stay signed in).
+- **`.next/types` is not shared.** The container keeps its own `.next` (including generated route
+  types) in a container volume. Your editor and host `pnpm typecheck` use the host's `.next`;
+  `pnpm typecheck` regenerates it (`next typegen`).
+- **Linux hosts:** the container runs as uid/gid 1000 (`node`), and files it writes into the
+  bind-mounted working tree (for example `next-env.d.ts`) are owned by uid 1000. If your user is not
+  uid 1000, expect permission errors. Also, the anonymous volume mount points can leave empty,
+  root-owned `node_modules/` and `.next/` folders in the working tree, so a later host
+  `pnpm install` may fail with `EACCES`. Fix: remove those empty folders with `sudo`, or run the
+  stack as your own uid. Docker Desktop on macOS maps ownership, so none of this applies there.
+- **Phone testing:** add `DEV_ALLOWED_ORIGINS=<your LAN IP>` to `.env` as in
+  [Test on a phone](#test-on-a-phone), then `docker compose restart app`.
+- Quality checks and tests (`pnpm check`, `test:integration`, `test:e2e`) still run on the host.
+
 ## Tests and quality checks
 
 | Command                 | What it runs                                       | Needs                         |
@@ -197,6 +266,8 @@ pnpm start        # serves the production build; requires a real BETTER_AUTH_SEC
 - **quality:** install → lint → format check → typecheck → unit tests → build
 - **integration:** the integration suite against a fresh PostgreSQL 18 service container, which also
   proves the migrations apply to an empty database
+- **docker-build:** builds the `dev` target of the `Dockerfile` (nothing is pushed or run), so the
+  Docker dev stack keeps working with the current lockfile
 
 Playwright tests are not in CI yet; they are the next CI extension.
 
@@ -214,6 +285,7 @@ src/
 └── test/integration/ Integration test harness and test-database guard
 e2e/                  Playwright end-to-end tests
 docker/               PostgreSQL init scripts
+Dockerfile            Local development image for `pnpm docker:dev` (not a production image)
 ```
 
 `src/integrations` is added when the first external integration exists.
