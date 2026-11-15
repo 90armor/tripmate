@@ -1,0 +1,29 @@
+# Keep the build context small and free of secrets and host-specific files.
+
+# Host dependencies and build output: they contain macOS-native binaries
+# (esbuild, lightningcss, @next/swc) that do not run in the Linux container.
+node_modules
+.next
+out
+build
+*.tsbuildinfo
+
+# Secrets never go into an image. The dev container gets its configuration
+# from docker-compose.yml (and, through the bind mount, an optional .env).
+.env
+.env.*
+!.env.example
+
+# Version control, editor and agent tooling: not needed to run the app.
+.git
+.github
+.husky
+.claude
+.DS_Store
+*.log
+
+# Test output
+coverage
+test-results
+playwright-report
+blob-report
