@@ -182,15 +182,19 @@ Stop with Ctrl+C or `docker compose stop`. Data stays in the volume `tripmate_tr
   placeholder secret. Anyone on the same network can open it. Use trusted networks only and never
   real data.
 - **Host `pnpm dev` and the container both use port 3000** — run one at a time
-  (`docker compose stop app`). They share `localhost` cookies but not the secret, so switching
-  between them signs you out.
+  (`docker compose stop app`). They use the **same database** (`tripmate`), so accounts and trips
+  are shared. They also share `localhost` cookies; switching between them signs you out only when
+  the secrets differ (a host `.env` that still uses the `.env.example` placeholder has the same
+  secret, so you stay signed in).
 - **`.next/types` is not shared.** The container keeps its own `.next` (including generated route
   types) in a container volume. Your editor and host `pnpm typecheck` use the host's `.next`;
   `pnpm typecheck` regenerates it (`next typegen`).
 - **Linux hosts:** the container runs as uid/gid 1000 (`node`), and files it writes into the
   bind-mounted working tree (for example `next-env.d.ts`) are owned by uid 1000. If your user is not
-  uid 1000, expect permission errors. Docker Desktop on macOS maps ownership, so this does not
-  apply there.
+  uid 1000, expect permission errors. Also, the anonymous volume mount points can leave empty,
+  root-owned `node_modules/` and `.next/` folders in the working tree, so a later host
+  `pnpm install` may fail with `EACCES`. Fix: remove those empty folders with `sudo`, or run the
+  stack as your own uid. Docker Desktop on macOS maps ownership, so none of this applies there.
 - **Phone testing:** add `DEV_ALLOWED_ORIGINS=<your LAN IP>` to `.env` as in
   [Test on a phone](#test-on-a-phone), then `docker compose restart app`.
 - Quality checks and tests (`pnpm check`, `test:integration`, `test:e2e`) still run on the host.

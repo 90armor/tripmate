@@ -10,9 +10,9 @@ build
 
 # Secrets never go into an image. The dev container gets its configuration
 # from docker-compose.yml (and, through the bind mount, an optional .env).
-.env
-.env.*
-!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 # Version control, editor and agent tooling: not needed to run the app.
 .git
