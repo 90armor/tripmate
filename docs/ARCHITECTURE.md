@@ -1953,13 +1953,11 @@ Docker
 
 This provides consistent developer setup.
 
-Potential later:
-
-```text
-Docker Compose
-```
-
-for additional infrastructure if needed.
+Optionally, the whole local development stack (PostgreSQL, migrations with the reference
+seed, and the Next.js dev server) runs through Docker Compose with `pnpm docker:dev`
+(ROADMAP D23). This is a development convenience, not a deployment architecture: the dev
+image runs `next dev` with devDependencies and a local-only placeholder secret. Production
+images and hosting remain undecided (§87).
 
 ---
 
@@ -1973,6 +1971,7 @@ Lint
 Unit tests
 Integration tests
 Build
+Docker dev image build
 ```
 
 Potential:
