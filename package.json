@@ -21,6 +21,7 @@
     "test:e2e": "playwright test",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:unit",
     "db:up": "docker compose up -d --wait postgres",
+    "docker:dev": "docker compose up --build --renew-anon-volumes migrate app",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

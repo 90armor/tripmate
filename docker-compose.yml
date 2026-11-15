@@ -1,6 +1,13 @@
-# Local development PostgreSQL only (CURRENT_TASK §13-14). Next.js runs natively on the host.
-# Credentials below are LOCAL-ONLY and match .env.example. Never reuse them anywhere else.
+# TripMate local development stack (ROADMAP D23). Two ways to use it:
+#   pnpm db:up       PostgreSQL only; Next.js runs on the host with `pnpm dev`.
+#   pnpm docker:dev  Everything: postgres → migrate (migrations + currency seed) → app (`next dev`).
+# Credentials and the auth secret below are LOCAL-ONLY and match .env.example.
+# Never reuse them anywhere else. This is not a production setup.
 name: tripmate
+
+# Inside the compose network PostgreSQL is `postgres:5432`, not the host's 127.0.0.1:5433.
+x-database-url: &database-url
+  DATABASE_URL: postgres://tripmate:tripmate@postgres:5432/tripmate
 
 services:
   postgres:
@@ -22,6 +29,49 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # One-shot: applies committed migrations and upserts currencies, then exits.
+  # The only service with `build:`, so the image is built once and `app` reuses it.
+  migrate:
+    build:
+      context: .
+      target: dev
+    image: tripmate-dev
+    command: ["sh", "-c", "pnpm db:migrate && pnpm db:seed"]
+    environment:
+      <<: *database-url
+    volumes:
+      # Current source (migrations, seed data) from the host; Linux node_modules from the image.
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    image: tripmate-dev
+    # Built by `migrate`; never look for it in a registry.
+    pull_policy: never
+    environment:
+      <<: *database-url
+      # The browser origin. A BETTER_AUTH_URL in .env is ignored here (environment wins).
+      BETTER_AUTH_URL: http://localhost:3000
+      # LOCAL-ONLY: the public .env.example placeholder. src/lib/env-schema.ts accepts it only
+      # outside production with a localhost BETTER_AUTH_URL. DEV_ALLOWED_ORIGINS is not set
+      # here on purpose: Next.js reads it from .env (bind-mounted) if present.
+      BETTER_AUTH_SECRET: replace-me-with-openssl-rand-base64-32-output
+    ports:
+      # All interfaces, like host `pnpm dev`, so a phone on the same Wi-Fi can reach it.
+      - "3000:3000"
+    volumes:
+      # Source from the host for hot reload. Anonymous volumes keep the image's Linux
+      # node_modules and give the container its own .next (no clash with host `pnpm dev`).
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   tripmate-pgdata:
