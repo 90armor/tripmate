@@ -60,6 +60,7 @@ Do not pick an answer and write it into the docs as if it were decided.
 - `pnpm db:migrate` — apply committed migrations; `pnpm db:generate` — create a migration from schema changes
 - `pnpm db:seed` — upsert currency reference data
 - `pnpm dev` — run the Next.js dev server
+- `pnpm docker:dev` — optional full dev stack in Docker (postgres → migrate + seed → `next dev`); dev image only, see README and D23
 - `pnpm check` — lint + format check + typecheck + unit tests (main local gate)
 - `pnpm test:integration` — PostgreSQL integration tests against `tripmate_test`
 - `pnpm test:e2e` — Playwright (360, 430 and 1280px)
